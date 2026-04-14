@@ -14,7 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      fields: {
+        Row: {
+          created_at: string
+          google_maps_url: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          google_maps_url?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          google_maps_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          category_id: string
+          created_at: string
+          field_id: string | null
+          id: string
+          match_date: string
+          match_time: string
+          mister_id: string | null
+          notes: string | null
+          opponent: string
+          score_away: number | null
+          score_home: number | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          field_id?: string | null
+          id?: string
+          match_date: string
+          match_time: string
+          mister_id?: string | null
+          notes?: string | null
+          opponent: string
+          score_away?: number | null
+          score_home?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          field_id?: string | null
+          id?: string
+          match_date?: string
+          match_time?: string
+          mister_id?: string | null
+          notes?: string | null
+          opponent?: string
+          score_away?: number | null
+          score_home?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_mister_id_fkey"
+            columns: ["mister_id"]
+            isOneToOne: false
+            referencedRelation: "misters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      misters: {
+        Row: {
+          access_code: string
+          category: string | null
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+        }
+        Insert: {
+          access_code: string
+          category?: string | null
+          created_at?: string
+          first_name: string
+          id?: string
+          last_name: string
+        }
+        Update: {
+          access_code?: string
+          category?: string | null
+          created_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          category: string | null
+          created_at: string
+          device_id: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          session_type: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          device_id: string
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          session_type: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          device_id?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          session_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
