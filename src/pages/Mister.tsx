@@ -5,20 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MatchCard } from "@/components/MatchCard";
 import { Loader2 } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
+import { toast } from "sonner";
 
-const Index = () => {
-  const [session, setSession] = useState<{ first_name: string; last_name: string; category: string } | null>(null);
+const MisterPage = () => {
+  const [session, setSession] = useState<{ first_name: string; last_name: string; category: string | null } | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [category, setCategory] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [viewCategory, setViewCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing session
   useEffect(() => {
     const checkSession = async () => {
       const deviceId = getDeviceId();
@@ -26,14 +25,14 @@ const Index = () => {
         .from("sessions")
         .select("*")
         .eq("device_id", deviceId)
-        .eq("session_type", "athlete")
+        .eq("session_type", "mister")
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
 
       if (data) {
-        setSession({ first_name: data.first_name, last_name: data.last_name, category: data.category || "" });
-        setViewCategory(data.category || null);
+        setSession({ first_name: data.first_name, last_name: data.last_name, category: data.category });
+        setViewCategory(data.category);
       }
       setLoading(false);
     };
@@ -49,13 +48,11 @@ const Index = () => {
     },
   });
 
-  const activeCategory = viewCategory;
-
   const { data: matches, isLoading: matchesLoading } = useQuery({
-    queryKey: ["matches", activeCategory],
+    queryKey: ["mister-matches", viewCategory],
     queryFn: async () => {
-      if (!activeCategory) return [];
-      const cat = categories.find((c) => c.name === activeCategory);
+      if (!viewCategory) return [];
+      const cat = categories.find((c) => c.name === viewCategory);
       if (!cat) return [];
 
       const today = new Date().toISOString().split("T")[0];
@@ -69,24 +66,38 @@ const Index = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!activeCategory && categories.length > 0,
+    enabled: !!viewCategory && categories.length > 0,
   });
 
   const handleLogin = async () => {
-    if (!firstName.trim() || !lastName.trim() || !category) return;
+    if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
+
+    // Verify mister credentials
+    const { data: mister } = await supabase
+      .from("misters")
+      .select("*")
+      .ilike("first_name", firstName.trim())
+      .ilike("last_name", lastName.trim())
+      .eq("access_code", accessCode.trim())
+      .maybeSingle();
+
+    if (!mister) {
+      toast.error("Credenziali non valide");
+      return;
+    }
+
     const deviceId = getDeviceId();
-    
     await supabase.from("sessions").insert({
-      session_type: "athlete",
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      category,
+      session_type: "mister",
+      first_name: mister.first_name,
+      last_name: mister.last_name,
+      category: mister.category,
       device_id: deviceId,
       is_active: true,
     });
 
-    setSession({ first_name: firstName.trim(), last_name: lastName.trim(), category });
-    setViewCategory(category);
+    setSession({ first_name: mister.first_name, last_name: mister.last_name, category: mister.category });
+    setViewCategory(mister.category);
   };
 
   if (loading) {
@@ -97,7 +108,6 @@ const Index = () => {
     );
   }
 
-  // Login screen
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -106,45 +116,24 @@ const Index = () => {
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
               Torneo di Paestum
             </CardTitle>
-            <p className="text-accent text-sm sm:text-base">Accesso Atleti</p>
+            <p className="text-accent text-sm sm:text-base">Accesso Mister</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-foreground">Nome</Label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Il tuo nome"
-                className="bg-muted/50 text-foreground"
-              />
+              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Il tuo nome" className="bg-muted/50 text-foreground" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Cognome</Label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Il tuo cognome"
-                className="bg-muted/50 text-foreground"
-              />
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Il tuo cognome" className="bg-muted/50 text-foreground" />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground">Categoria</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="bg-muted/50 text-foreground">
-                  <SelectValue placeholder="Seleziona categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-foreground">Codice di accesso</Label>
+              <Input value={accessCode} onChange={(e) => setAccessCode(e.target.value)} placeholder="Codice" className="bg-muted/50 text-foreground" />
             </div>
             <Button
               onClick={handleLogin}
-              disabled={!firstName.trim() || !lastName.trim() || !category}
+              disabled={!firstName.trim() || !lastName.trim() || !accessCode.trim()}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Accedi
@@ -155,18 +144,16 @@ const Index = () => {
     );
   }
 
-  // Main view
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Paestum</h1>
           <p className="text-accent text-sm">
-            {session.first_name} {session.last_name} — Categoria {viewCategory}
+            Mister {session.first_name} {session.last_name} — Categoria {viewCategory}
           </p>
         </div>
 
-        {/* Category selector */}
         <div className="flex flex-wrap gap-2 mb-6">
           {categories.map((c) => (
             <Button
@@ -187,7 +174,7 @@ const Index = () => {
           </div>
         ) : !matches || matches.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Nessuna partita programmata per questa categoria</p>
+            <p className="text-muted-foreground">Nessuna partita programmata</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -201,4 +188,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default MisterPage;
