@@ -1,0 +1,154 @@
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+
+interface AddMatchDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
+  const queryClient = useQueryClient();
+  const [categoryId, setCategoryId] = useState("");
+  const [misterId, setMisterId] = useState("");
+  const [opponent, setOpponent] = useState("");
+  const [fieldId, setFieldId] = useState("");
+  const [matchDate, setMatchDate] = useState("");
+  const [matchTime, setMatchTime] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: misters = [] } = useQuery({
+    queryKey: ["misters"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("misters").select("*").order("last_name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: fields = [] } = useQuery({
+    queryKey: ["fields"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fields").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleSubmit = async () => {
+    if (!categoryId || !opponent.trim() || !matchDate || !matchTime) {
+      toast.error("Compila tutti i campi obbligatori");
+      return;
+    }
+
+    const { error } = await supabase.from("matches").insert({
+      category_id: categoryId,
+      mister_id: misterId || null,
+      opponent: opponent.trim(),
+      field_id: fieldId || null,
+      match_date: matchDate,
+      match_time: matchTime,
+      notes: notes.trim() || null,
+    });
+
+    if (error) {
+      toast.error("Errore nella creazione della partita");
+      return;
+    }
+
+    toast.success("Partita creata!");
+    queryClient.invalidateQueries({ queryKey: ["matches"] });
+    queryClient.invalidateQueries({ queryKey: ["staff-matches"] });
+    onOpenChange(false);
+    // Reset
+    setCategoryId("");
+    setMisterId("");
+    setOpponent("");
+    setFieldId("");
+    setMatchDate("");
+    setMatchTime("");
+    setNotes("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-card border-border/50 text-foreground max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-foreground">Aggiungi Partita</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-foreground">Categoria *</Label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground">Mister</Label>
+            <Select value={misterId} onValueChange={setMisterId}>
+              <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+              <SelectContent>
+                {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground">Squadra avversaria *</Label>
+            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50 text-foreground" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground">Campo</Label>
+            <Select value={fieldId} onValueChange={setFieldId}>
+              <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+              <SelectContent>
+                {fields.map((f) => (<SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-foreground">Data *</Label>
+              <Input type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className="bg-muted/50 text-foreground" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground">Ora *</Label>
+              <Input type="time" value={matchTime} onChange={(e) => setMatchTime(e.target.value)} className="bg-muted/50 text-foreground" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground">Note</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="bg-muted/50 text-foreground" />
+          </div>
+
+          <Button onClick={handleSubmit} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+            Crea Partita
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
