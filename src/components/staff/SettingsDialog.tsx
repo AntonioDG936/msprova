@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { AddMatchDialog } from "./AddMatchDialog";
+import { ManageSessionsDialog } from "./ManageSessionsDialog";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -16,24 +18,55 @@ interface SettingsDialogProps {
 }
 
 export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
+  const [isAddMatchOpen, setIsAddMatchOpen] = useState(false);
+  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border/50 text-foreground max-h-[90vh] overflow-y-auto max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Impostazioni</DialogTitle>
-        </DialogHeader>
-        <Tabs defaultValue="categories">
-          <TabsList className="bg-muted/50 w-full">
-            <TabsTrigger value="categories" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground">Categorie</TabsTrigger>
-            <TabsTrigger value="misters" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground">Mister</TabsTrigger>
-            <TabsTrigger value="fields" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground">Campi</TabsTrigger>
-          </TabsList>
-          <TabsContent value="categories"><CategoriesTab /></TabsContent>
-          <TabsContent value="misters"><MistersTab /></TabsContent>
-          <TabsContent value="fields"><FieldsTab /></TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="bg-card border-border/50 text-foreground max-h-[90vh] overflow-y-auto max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Impostazioni</DialogTitle>
+          </DialogHeader>
+
+          {/* Quick action buttons */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={() => setIsAddMatchOpen(true)}
+              className="bg-secondary hover:bg-secondary/90 text-primary-foreground rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square transition-all active:scale-95"
+            >
+              <Plus className="w-8 h-8" />
+              <span className="text-xs font-semibold text-center">Aggiungi Partita</span>
+            </button>
+            <button
+              onClick={() => setIsSessionsOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square transition-all active:scale-95"
+            >
+              <Users className="w-8 h-8" />
+              <span className="text-xs font-semibold text-center">Gestisci Sessioni</span>
+            </button>
+          </div>
+
+          <Tabs defaultValue="categories">
+            <TabsList className="bg-muted/50 w-full flex-wrap h-auto">
+              <TabsTrigger value="categories" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground text-xs">Categorie</TabsTrigger>
+              <TabsTrigger value="misters" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground text-xs">Mister</TabsTrigger>
+              <TabsTrigger value="fields" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground text-xs">Campi</TabsTrigger>
+              <TabsTrigger value="teams" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground text-xs">Squadre</TabsTrigger>
+              <TabsTrigger value="athletes" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-foreground text-xs">Atleti</TabsTrigger>
+            </TabsList>
+            <TabsContent value="categories"><CategoriesTab /></TabsContent>
+            <TabsContent value="misters"><MistersTab /></TabsContent>
+            <TabsContent value="fields"><FieldsTab /></TabsContent>
+            <TabsContent value="teams"><OpponentTeamsTab /></TabsContent>
+            <TabsContent value="athletes"><AthletesTab /></TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      <AddMatchDialog open={isAddMatchOpen} onOpenChange={setIsAddMatchOpen} />
+      <ManageSessionsDialog open={isSessionsOpen} onOpenChange={setIsSessionsOpen} />
+    </>
   );
 };
 
@@ -114,10 +147,8 @@ const MistersTab = () => {
   const addMister = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
     const { error } = await supabase.from("misters").insert({
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      access_code: accessCode.trim(),
-      category: category || null,
+      first_name: firstName.trim(), last_name: lastName.trim(),
+      access_code: accessCode.trim(), category: category || null,
     });
     if (error) { toast.error("Errore"); return; }
     toast.success("Mister aggiunto");
@@ -226,9 +257,7 @@ const FieldsTab = () => {
             <div>
               <span className="text-foreground">{f.name}</span>
               {f.google_maps_url && (
-                <a href={f.google_maps_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs ml-2 hover:underline">
-                  Maps
-                </a>
+                <a href={f.google_maps_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs ml-2 hover:underline">Maps</a>
               )}
             </div>
             <Button onClick={() => deleteField(f.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
@@ -236,6 +265,157 @@ const FieldsTab = () => {
             </Button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+const OpponentTeamsTab = () => {
+  const queryClient = useQueryClient();
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [newTeamName, setNewTeamName] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ["opponent-teams", selectedCategory],
+    queryFn: async () => {
+      if (!selectedCategory) return [];
+      const { data, error } = await supabase.from("opponent_teams").select("*").eq("category_id", selectedCategory).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedCategory,
+  });
+
+  const addTeam = async () => {
+    if (!newTeamName.trim() || !selectedCategory) return;
+    const { error } = await supabase.from("opponent_teams").insert({ name: newTeamName.trim(), category_id: selectedCategory });
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Squadra aggiunta");
+    setNewTeamName("");
+    queryClient.invalidateQueries({ queryKey: ["opponent-teams"] });
+  };
+
+  const deleteTeam = async (id: string) => {
+    const { error } = await supabase.from("opponent_teams").delete().eq("id", id);
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Squadra eliminata");
+    queryClient.invalidateQueries({ queryKey: ["opponent-teams"] });
+  };
+
+  return (
+    <div className="space-y-4 mt-4">
+      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona categoria" /></SelectTrigger>
+        <SelectContent>
+          {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+        </SelectContent>
+      </Select>
+
+      {selectedCategory && (
+        <>
+          <div className="flex gap-2">
+            <Input value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="Nome squadra" className="bg-muted/50 text-foreground" />
+            <Button onClick={addTeam} size="icon" className="bg-primary"><Plus className="w-4 h-4" /></Button>
+          </div>
+          <div className="space-y-2">
+            {teams.map((t) => (
+              <div key={t.id} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
+                <span className="text-foreground">{t.name}</span>
+                <Button onClick={() => deleteTeam(t.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const AthletesTab = () => {
+  const queryClient = useQueryClient();
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: athletes = [] } = useQuery({
+    queryKey: ["athlete-sessions", selectedCategory],
+    queryFn: async () => {
+      let query = supabase
+        .from("sessions")
+        .select("*")
+        .eq("session_type", "athlete")
+        .eq("is_active", true)
+        .order("last_name");
+
+      if (selectedCategory) {
+        const cat = categories.find(c => c.id === selectedCategory);
+        if (cat) {
+          query = query.eq("category", cat.name);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: categories.length > 0,
+  });
+
+  const updateAthleteCategory = async (sessionId: string, newCategory: string) => {
+    const { error } = await supabase.from("sessions").update({ category: newCategory }).eq("id", sessionId);
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Categoria aggiornata");
+    queryClient.invalidateQueries({ queryKey: ["athlete-sessions"] });
+  };
+
+  return (
+    <div className="space-y-4 mt-4">
+      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Tutte le categorie" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Tutte</SelectItem>
+          {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+        </SelectContent>
+      </Select>
+
+      <div className="space-y-2">
+        {athletes.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">Nessun atleta registrato</p>
+        ) : (
+          athletes.map((a) => (
+            <div key={a.id} className="bg-muted/30 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-foreground font-semibold">{a.first_name} {a.last_name}</span>
+              </div>
+              <div className="mt-2">
+                <Select value={a.category || ""} onValueChange={(v) => updateAthleteCategory(a.id, v)}>
+                  <SelectTrigger className="bg-muted/50 text-foreground h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

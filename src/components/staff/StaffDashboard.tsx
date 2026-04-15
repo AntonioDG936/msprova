@@ -1,18 +1,27 @@
 import { useState } from "react";
-import { Plus, Users, MapPin, Settings, CalendarDays, Edit, Trash2 } from "lucide-react";
+import { Trophy, History, CalendarDays, Apple, Edit, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AddMatchDialog } from "./AddMatchDialog";
-import { SettingsDialog } from "./SettingsDialog";
-import { ManageSessionsDialog } from "./ManageSessionsDialog";
 import { StaffMatchesView } from "./StaffMatchesView";
+import { SettingsDialog } from "./SettingsDialog";
+import { StaffClassifiche } from "./StaffClassifiche";
+import { MatchHistoryDialog } from "./MatchHistoryDialog";
 
-type View = "home" | "matches";
+type View = "home" | "matches" | "classifiche";
 
 export const StaffDashboard = () => {
   const [view, setView] = useState<View>("home");
-  const [isAddMatchOpen, setIsAddMatchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const handleAppleCalendar = () => {
+    const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-feed`;
+    const webcalUrl = baseUrl.replace(/^https?:\/\//, "webcal://");
+    window.location.href = webcalUrl;
+  };
+
+  if (view === "classifiche") {
+    return <StaffClassifiche onBack={() => setView("home")} />;
+  }
 
   if (view === "matches") {
     return (
@@ -30,10 +39,12 @@ export const StaffDashboard = () => {
     );
   }
 
-  const buttons = [
-    { icon: Plus, label: "Aggiungi Partita", onClick: () => setIsAddMatchOpen(true), color: "bg-secondary hover:bg-secondary/90" },
-    { icon: CalendarDays, label: "Vedi Partite", onClick: () => setView("matches"), color: "bg-primary hover:bg-primary/90" },
-    { icon: Users, label: "Gestisci Sessioni", onClick: () => setIsSessionsOpen(true), color: "bg-primary hover:bg-primary/90" },
+  const mainButtons = [
+    { icon: Trophy, label: "Classifiche", onClick: () => setView("classifiche"), color: "bg-primary hover:bg-primary/90" },
+    { icon: CalendarDays, label: "Calendario", onClick: handleAppleCalendar, color: "bg-primary hover:bg-primary/90" },
+    { icon: History, label: "Storico Partite", onClick: () => setIsHistoryOpen(true), color: "bg-primary hover:bg-primary/90" },
+    { icon: Edit, label: "Gestisci Partite", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
+    { icon: Plus, label: "Aggiungi Partita", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
     { icon: Settings, label: "Impostazioni", onClick: () => setIsSettingsOpen(true), color: "bg-muted hover:bg-muted/80" },
   ];
 
@@ -46,7 +57,7 @@ export const StaffDashboard = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
-          {buttons.map((btn) => (
+          {mainButtons.map((btn) => (
             <button
               key={btn.label}
               onClick={btn.onClick}
@@ -59,9 +70,8 @@ export const StaffDashboard = () => {
         </div>
       </div>
 
-      <AddMatchDialog open={isAddMatchOpen} onOpenChange={setIsAddMatchOpen} />
       <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
-      <ManageSessionsDialog open={isSessionsOpen} onOpenChange={setIsSessionsOpen} />
+      <MatchHistoryDialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen} />
     </div>
   );
 };

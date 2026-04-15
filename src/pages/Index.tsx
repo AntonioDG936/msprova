@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,18 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MatchCard } from "@/components/MatchCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy, History, Apple } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
+import { StandingsView } from "@/components/StandingsView";
+import { MatchHistoryView } from "@/components/MatchHistoryView";
+
+type View = "matches" | "classifiche" | "storico";
 
 const Index = () => {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<{ first_name: string; last_name: string; category: string } | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [category, setCategory] = useState("");
   const [viewCategory, setViewCategory] = useState<string | null>(null);
+  const [showOtherCategories, setShowOtherCategories] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<View>("matches");
 
-  // Check for existing session
+  useEffect(() => {
+    document.body.classList.add("with-background");
+    return () => document.body.classList.remove("with-background");
+  }, []);
+
   useEffect(() => {
     const checkSession = async () => {
       const deviceId = getDeviceId();
@@ -75,7 +86,7 @@ const Index = () => {
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !category) return;
     const deviceId = getDeviceId();
-    
+
     await supabase.from("sessions").insert({
       session_type: "athlete",
       first_name: firstName.trim(),
@@ -97,7 +108,6 @@ const Index = () => {
     );
   }
 
-  // Login screen
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -111,21 +121,11 @@ const Index = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-foreground">Nome</Label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Il tuo nome"
-                className="bg-muted/50 text-foreground"
-              />
+              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Il tuo nome" className="bg-muted/50 text-foreground" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Cognome</Label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Il tuo cognome"
-                className="bg-muted/50 text-foreground"
-              />
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Il tuo cognome" className="bg-muted/50 text-foreground" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Categoria</Label>
@@ -135,18 +135,12 @@ const Index = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={handleLogin}
-              disabled={!firstName.trim() || !lastName.trim() || !category}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={handleLogin} disabled={!firstName.trim() || !lastName.trim() || !category} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               Accedi
             </Button>
           </CardContent>
@@ -155,7 +149,14 @@ const Index = () => {
     );
   }
 
-  // Main view
+  if (currentView === "classifiche") {
+    return <StandingsView onBack={() => setCurrentView("matches")} />;
+  }
+
+  if (currentView === "storico") {
+    return <MatchHistoryView onBack={() => setCurrentView("matches")} />;
+  }
+
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
@@ -166,20 +167,33 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Category selector */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {categories.map((c) => (
-            <Button
-              key={c.id}
-              onClick={() => setViewCategory(c.name)}
-              variant={viewCategory === c.name ? "default" : "outline"}
-              size="sm"
-              className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}
-            >
-              {c.name}
-            </Button>
-          ))}
+        {/* Navigation */}
+        <div className="flex gap-2 mb-4">
+          <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
+            <Trophy className="w-4 h-4 mr-1" /> Classifiche
+          </Button>
+          <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
+            <History className="w-4 h-4 mr-1" /> Storico
+          </Button>
         </div>
+
+        {/* Other categories toggle */}
+        {!showOtherCategories ? (
+          <Button onClick={() => setShowOtherCategories(true)} variant="outline" size="sm" className="mb-4 text-foreground border-primary/30">
+            Altre Categorie
+          </Button>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button onClick={() => { setViewCategory(session.category); setShowOtherCategories(false); }} variant={viewCategory === session.category ? "default" : "outline"} size="sm" className={viewCategory === session.category ? "" : "text-foreground border-primary/30"}>
+              {session.category} (mia)
+            </Button>
+            {categories.filter(c => c.name !== session.category).map((c) => (
+              <Button key={c.id} onClick={() => setViewCategory(c.name)} variant={viewCategory === c.name ? "default" : "outline"} size="sm" className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}>
+                {c.name}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {matchesLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -192,7 +206,12 @@ const Index = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => (
-              <MatchCard key={match.id} match={match as any} />
+              <MatchCard
+                key={match.id}
+                match={match as any}
+                showCategory={true}
+                onUpdate={() => queryClient.invalidateQueries({ queryKey: ["matches"] })}
+              />
             ))}
           </div>
         )}

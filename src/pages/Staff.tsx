@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Keypad } from "@/components/Keypad";
 import { toast } from "sonner";
 import { StaffDashboard } from "@/components/staff/StaffDashboard";
 
-const STAFF_PIN = "3102";
+const STAFF_PIN = "0891";
 
 const Staff = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,10 +43,7 @@ const Staff = () => {
           <CardContent className="space-y-6">
             <div className="flex justify-center gap-2 sm:gap-3">
               {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg border-2 border-primary/50 flex items-center justify-center bg-primary/5"
-                >
+                <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg border-2 border-primary/50 flex items-center justify-center bg-primary/5">
                   {pin[i] ? <div className="w-3 h-3 rounded-full bg-primary" /> : null}
                 </div>
               ))}
