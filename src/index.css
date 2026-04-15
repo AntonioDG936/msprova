@@ -35,6 +35,9 @@
     
     --radius: 0.75rem;
 
+    --shadow-glow: 0 0 30px hsl(194 81% 49% / 0.3);
+    --shadow-card: 0 10px 40px hsl(0 0% 0% / 0.5);
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -84,5 +87,17 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Background image for public pages (/ and /mister) */
+  body.with-background::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url('/images/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 }
