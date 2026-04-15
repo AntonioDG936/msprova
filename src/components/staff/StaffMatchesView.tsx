@@ -6,17 +6,19 @@ import { it } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, User, Trash2, Edit, FileText } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Trash2, Edit, FileText, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { LiveMatchDashboard } from "@/components/matches/LiveMatchDashboard";
 
 export const StaffMatchesView = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [editMatch, setEditMatch] = useState<any>(null);
+  const [liveMatch, setLiveMatch] = useState<any>(null);
 
   const { data: matches = [] } = useQuery({
     queryKey: ["staff-matches", selectedDate],
@@ -55,20 +57,28 @@ export const StaffMatchesView = () => {
             <Card key={match.id} className="bg-card/80 backdrop-blur-sm border-border/50">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
-                      {match.category?.name}
-                    </span>
-                    <h3 className="font-bold text-lg text-foreground mt-1">vs {match.opponent}</h3>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-base text-foreground">
+                        Napoli Campania vs {match.opponent}
+                      </h3>
+                      <span className="text-sm font-bold text-primary ml-2">
+                        {match.category?.name}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button onClick={() => setEditMatch(match)} size="icon" variant="ghost" className="text-primary hover:bg-primary/20">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button onClick={() => deleteMatch(match.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex gap-1 mb-3">
+                  <Button onClick={() => setLiveMatch(match)} size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                    <Radio className="w-3 h-3 mr-1" />
+                    LIVE
+                  </Button>
+                  <Button onClick={() => setEditMatch(match)} size="icon" variant="ghost" className="text-primary hover:bg-primary/20 h-8 w-8">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => deleteMatch(match.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20 h-8 w-8">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
@@ -89,6 +99,16 @@ export const StaffMatchesView = () => {
                       <FileText className="w-3 h-3" /><span>{match.notes}</span>
                     </div>
                   )}
+                  {match.status === "in_progress" && (
+                    <div className="flex items-center gap-2 text-secondary font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                      <span>
+                        {match.is_interval
+                          ? "INTERVALLO"
+                          : `${(match.current_minute ?? 0).toString().padStart(2, '0')}:${(match.current_second ?? 0).toString().padStart(2, '0')} - T${match.current_period ?? 1}`}
+                      </span>
+                    </div>
+                  )}
                   {match.score_home !== null && (
                     <div className="text-accent font-bold text-lg mt-2">
                       {match.score_home} - {match.score_away}
@@ -103,6 +123,15 @@ export const StaffMatchesView = () => {
 
       {editMatch && (
         <EditMatchDialog match={editMatch} open={!!editMatch} onOpenChange={(o) => { if (!o) setEditMatch(null); }} />
+      )}
+
+      {liveMatch && (
+        <LiveMatchDashboard
+          match={liveMatch}
+          open={!!liveMatch}
+          onOpenChange={(o) => { if (!o) setLiveMatch(null); }}
+          onUpdate={() => queryClient.invalidateQueries({ queryKey: ["staff-matches"] })}
+        />
       )}
     </div>
   );

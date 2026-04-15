@@ -60,43 +60,61 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string
+          current_minute: number | null
+          current_period: number | null
+          current_second: number | null
           field_id: string | null
           id: string
+          is_interval: boolean | null
           match_date: string
+          match_start_time: string | null
           match_time: string
           mister_id: string | null
           notes: string | null
           opponent: string
           score_away: number | null
           score_home: number | null
+          status: string
           updated_at: string
         }
         Insert: {
           category_id: string
           created_at?: string
+          current_minute?: number | null
+          current_period?: number | null
+          current_second?: number | null
           field_id?: string | null
           id?: string
+          is_interval?: boolean | null
           match_date: string
+          match_start_time?: string | null
           match_time: string
           mister_id?: string | null
           notes?: string | null
           opponent: string
           score_away?: number | null
           score_home?: number | null
+          status?: string
           updated_at?: string
         }
         Update: {
           category_id?: string
           created_at?: string
+          current_minute?: number | null
+          current_period?: number | null
+          current_second?: number | null
           field_id?: string | null
           id?: string
+          is_interval?: boolean | null
           match_date?: string
+          match_start_time?: string | null
           match_time?: string
           mister_id?: string | null
           notes?: string | null
           opponent?: string
           score_away?: number | null
           score_home?: number | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -150,6 +168,35 @@ export type Database = {
         }
         Relationships: []
       }
+      opponent_teams: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opponent_teams_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           category: string | null
@@ -182,6 +229,91 @@ export type Database = {
           session_type?: string
         }
         Relationships: []
+      }
+      standings: {
+        Row: {
+          category_id: string
+          championship_name: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          category_id: string
+          championship_name: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          category_id?: string
+          championship_name?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standings_entries: {
+        Row: {
+          created_at: string
+          drawn: number
+          goal_difference: number
+          goals_against: number
+          goals_for: number
+          id: string
+          lost: number
+          played: number
+          points: number
+          position: number
+          standings_id: string
+          team_name: string
+          won: number
+        }
+        Insert: {
+          created_at?: string
+          drawn?: number
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          lost?: number
+          played?: number
+          points?: number
+          position?: number
+          standings_id: string
+          team_name: string
+          won?: number
+        }
+        Update: {
+          created_at?: string
+          drawn?: number
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          lost?: number
+          played?: number
+          points?: number
+          position?: number
+          standings_id?: string
+          team_name?: string
+          won?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standings_entries_standings_id_fkey"
+            columns: ["standings_id"]
+            isOneToOne: false
+            referencedRelation: "standings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

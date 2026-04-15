@@ -1,22 +1,34 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MatchCard } from "@/components/MatchCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy, History } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
 import { toast } from "sonner";
+import { StandingsView } from "@/components/StandingsView";
+import { MatchHistoryView } from "@/components/MatchHistoryView";
+
+type View = "matches" | "classifiche" | "storico";
 
 const MisterPage = () => {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<{ first_name: string; last_name: string; category: string | null } | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [viewCategory, setViewCategory] = useState<string | null>(null);
+  const [showOtherCategories, setShowOtherCategories] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<View>("matches");
+
+  useEffect(() => {
+    document.body.classList.add("with-background");
+    return () => document.body.classList.remove("with-background");
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -72,7 +84,6 @@ const MisterPage = () => {
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
 
-    // Verify mister credentials
     const { data: mister } = await supabase
       .from("misters")
       .select("*")
@@ -131,17 +142,21 @@ const MisterPage = () => {
               <Label className="text-foreground">Codice di accesso</Label>
               <Input value={accessCode} onChange={(e) => setAccessCode(e.target.value)} placeholder="Codice" className="bg-muted/50 text-foreground" />
             </div>
-            <Button
-              onClick={handleLogin}
-              disabled={!firstName.trim() || !lastName.trim() || !accessCode.trim()}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={handleLogin} disabled={!firstName.trim() || !lastName.trim() || !accessCode.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               Accedi
             </Button>
           </CardContent>
         </Card>
       </div>
     );
+  }
+
+  if (currentView === "classifiche") {
+    return <StandingsView onBack={() => setCurrentView("matches")} />;
+  }
+
+  if (currentView === "storico") {
+    return <MatchHistoryView onBack={() => setCurrentView("matches")} />;
   }
 
   return (
@@ -154,19 +169,31 @@ const MisterPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {categories.map((c) => (
-            <Button
-              key={c.id}
-              onClick={() => setViewCategory(c.name)}
-              variant={viewCategory === c.name ? "default" : "outline"}
-              size="sm"
-              className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}
-            >
-              {c.name}
-            </Button>
-          ))}
+        <div className="flex gap-2 mb-4">
+          <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
+            <Trophy className="w-4 h-4 mr-1" /> Classifiche
+          </Button>
+          <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
+            <History className="w-4 h-4 mr-1" /> Storico
+          </Button>
         </div>
+
+        {!showOtherCategories ? (
+          <Button onClick={() => setShowOtherCategories(true)} variant="outline" size="sm" className="mb-4 text-foreground border-primary/30">
+            Altre Categorie
+          </Button>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button onClick={() => { setViewCategory(session.category); setShowOtherCategories(false); }} variant={viewCategory === session.category ? "default" : "outline"} size="sm" className={viewCategory === session.category ? "" : "text-foreground border-primary/30"}>
+              {session.category} (mia)
+            </Button>
+            {categories.filter(c => c.name !== session.category).map((c) => (
+              <Button key={c.id} onClick={() => setViewCategory(c.name)} variant={viewCategory === c.name ? "default" : "outline"} size="sm" className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}>
+                {c.name}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {matchesLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -179,7 +206,12 @@ const MisterPage = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => (
-              <MatchCard key={match.id} match={match as any} />
+              <MatchCard
+                key={match.id}
+                match={match as any}
+                showCategory={true}
+                onUpdate={() => queryClient.invalidateQueries({ queryKey: ["mister-matches"] })}
+              />
             ))}
           </div>
         )}

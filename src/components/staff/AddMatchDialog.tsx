@@ -51,6 +51,17 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
     },
   });
 
+  const { data: opponentTeams = [] } = useQuery({
+    queryKey: ["opponent-teams", categoryId],
+    queryFn: async () => {
+      if (!categoryId) return [];
+      const { data, error } = await supabase.from("opponent_teams").select("*").eq("category_id", categoryId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!categoryId,
+  });
+
   const handleSubmit = async () => {
     if (!categoryId || !opponent.trim() || !matchDate || !matchTime) {
       toast.error("Compila tutti i campi obbligatori");
@@ -76,14 +87,7 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
     queryClient.invalidateQueries({ queryKey: ["matches"] });
     queryClient.invalidateQueries({ queryKey: ["staff-matches"] });
     onOpenChange(false);
-    // Reset
-    setCategoryId("");
-    setMisterId("");
-    setOpponent("");
-    setFieldId("");
-    setMatchDate("");
-    setMatchTime("");
-    setNotes("");
+    setCategoryId(""); setMisterId(""); setOpponent(""); setFieldId(""); setMatchDate(""); setMatchTime(""); setNotes("");
   };
 
   return (
@@ -115,7 +119,16 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
 
           <div className="space-y-2">
             <Label className="text-foreground">Squadra avversaria *</Label>
-            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50 text-foreground" />
+            {opponentTeams.length > 0 ? (
+              <Select value={opponent} onValueChange={setOpponent}>
+                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona o digita" /></SelectTrigger>
+                <SelectContent>
+                  {opponentTeams.map((t) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50 text-foreground" placeholder="Nome squadra" />
+            )}
           </div>
 
           <div className="space-y-2">
