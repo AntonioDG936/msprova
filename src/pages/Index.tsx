@@ -150,7 +150,7 @@ const Index = () => {
   }
 
   if (currentView === "classifiche") {
-    return <StandingsView onBack={() => setCurrentView("matches")} />;
+    return <StandingsView onBack={() => setCurrentView("matches")} defaultCategory={viewCategory || session.category} />;
   }
 
   if (currentView === "storico") {
@@ -170,7 +170,7 @@ const Index = () => {
         {/* Navigation */}
         <div className="flex gap-2 mb-4">
           <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
-            <Trophy className="w-4 h-4 mr-1" /> Classifiche
+            <Trophy className="w-4 h-4 mr-1" /> Classifica
           </Button>
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico
