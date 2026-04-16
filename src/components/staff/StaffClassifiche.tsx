@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandingsTable } from "@/components/standings/StandingsTable";
 import { AddTeamDialog } from "@/components/standings/AddTeamDialog";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface StaffClassificheProps {
   onBack: () => void;
@@ -18,10 +15,7 @@ interface StaffClassificheProps {
 export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedStanding, setSelectedStanding] = useState<string>("");
-  const [isAddStandingOpen, setIsAddStandingOpen] = useState(false);
   const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
-  const [newChampionshipName, setNewChampionshipName] = useState("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -32,47 +26,137 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
     },
   });
 
-  const { data: standings = [] } = useQuery({
-    queryKey: ["standings", selectedCategory],
+  // Auto-find or create standings for selected category
+  const { data: standing } = useQuery({
+    queryKey: ["standing-for-category", selectedCategory],
     queryFn: async () => {
-      if (!selectedCategory) return [];
-      const { data, error } = await supabase
+      if (!selectedCategory) return null;
+      const cat = categories.find(c => c.id === selectedCategory);
+      if (!cat) return null;
+
+      // Check existing
+      const { data: existing } = await supabase
         .from("standings")
         .select("*")
         .eq("category_id", selectedCategory)
-        .order("championship_name");
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) return existing;
+
+      // Auto-create
+      const { data: created, error } = await supabase
+        .from("standings")
+        .insert({ category_id: selectedCategory, championship_name: `Torneo ${cat.name}` })
+        .select()
+        .single();
       if (error) throw error;
-      return data;
+      return created;
     },
-    enabled: !!selectedCategory,
+    enabled: !!selectedCategory && categories.length > 0,
   });
 
+  const standingId = standing?.id || "";
+
   const { data: entries = [] } = useQuery({
-    queryKey: ["standings-entries", selectedStanding],
+    queryKey: ["standings-entries", standingId],
     queryFn: async () => {
-      if (!selectedStanding) return [];
+      if (!standingId) return [];
       const { data, error } = await supabase
         .from("standings_entries")
         .select("*")
-        .eq("standings_id", selectedStanding)
+        .eq("standings_id", standingId)
         .order("position");
       if (error) throw error;
       return data;
     },
-    enabled: !!selectedStanding,
+    enabled: !!standingId,
   });
 
-  const createStanding = async () => {
-    if (!newChampionshipName.trim() || !selectedCategory) return;
-    const { error } = await supabase.from("standings").insert({
-      category_id: selectedCategory,
-      championship_name: newChampionshipName.trim(),
+  // Auto-calculate standings from completed matches
+  const recalculate = async () => {
+    if (!standingId || !selectedCategory) return;
+
+    // Get all completed matches for this category
+    const { data: matches } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("category_id", selectedCategory)
+      .eq("status", "completed");
+
+    if (!matches) return;
+
+    // Build stats per team
+    const stats: Record<string, { played: number; won: number; drawn: number; lost: number; goals_for: number; goals_against: number; points: number }> = {};
+
+    // Initialize from existing entries
+    for (const entry of entries) {
+      stats[entry.team_name] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
+    }
+
+    // Ensure Napoli Campania exists
+    if (!stats["Napoli Campania"]) {
+      stats["Napoli Campania"] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
+    }
+
+    for (const m of matches) {
+      if (m.score_home === null || m.score_away === null) continue;
+      const home = "Napoli Campania";
+      const away = m.opponent;
+
+      if (!stats[home]) stats[home] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
+      if (!stats[away]) stats[away] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
+
+      stats[home].played++;
+      stats[away].played++;
+      stats[home].goals_for += m.score_home;
+      stats[home].goals_against += m.score_away;
+      stats[away].goals_for += m.score_away;
+      stats[away].goals_against += m.score_home;
+
+      if (m.score_home > m.score_away) {
+        stats[home].won++; stats[home].points += 3;
+        stats[away].lost++;
+      } else if (m.score_home < m.score_away) {
+        stats[away].won++; stats[away].points += 3;
+        stats[home].lost++;
+      } else {
+        stats[home].drawn++; stats[home].points += 1;
+        stats[away].drawn++; stats[away].points += 1;
+      }
+    }
+
+    // Sort by points, then goal difference
+    const sorted = Object.entries(stats).sort(([, a], [, b]) => {
+      const diffA = a.goals_for - a.goals_against;
+      const diffB = b.goals_for - b.goals_against;
+      if (b.points !== a.points) return b.points - a.points;
+      return diffB - diffA;
     });
-    if (error) { toast.error("Errore"); return; }
-    toast.success("Campionato creato");
-    setNewChampionshipName("");
-    setIsAddStandingOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["standings"] });
+
+    // Delete old entries and re-insert
+    await supabase.from("standings_entries").delete().eq("standings_id", standingId);
+
+    const newEntries = sorted.map(([team, s], i) => ({
+      standings_id: standingId,
+      team_name: team,
+      position: i + 1,
+      points: s.points,
+      played: s.played,
+      won: s.won,
+      drawn: s.drawn,
+      lost: s.lost,
+      goals_for: s.goals_for,
+      goals_against: s.goals_against,
+      goal_difference: s.goals_for - s.goals_against,
+    }));
+
+    if (newEntries.length > 0) {
+      await supabase.from("standings_entries").insert(newEntries);
+    }
+
+    toast.success("Classifica ricalcolata");
+    queryClient.invalidateQueries({ queryKey: ["standings-entries"] });
   };
 
   return (
@@ -86,7 +170,7 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
         </div>
 
         <div className="space-y-4">
-          <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setSelectedStanding(""); }}>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="bg-card border-border text-foreground">
               <SelectValue placeholder="Seleziona categoria" />
             </SelectTrigger>
@@ -97,27 +181,12 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
             </SelectContent>
           </Select>
 
-          {selectedCategory && (
-            <div className="flex gap-2">
-              <Select value={selectedStanding} onValueChange={setSelectedStanding}>
-                <SelectTrigger className="flex-1 bg-card border-border text-foreground">
-                  <SelectValue placeholder="Seleziona campionato" />
-                </SelectTrigger>
-                <SelectContent>
-                  {standings.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.championship_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={() => setIsAddStandingOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" /> Nuovo
-              </Button>
-            </div>
-          )}
-
-          {selectedStanding && (
+          {standingId && (
             <div className="space-y-4">
-              <div className="flex justify-end">
+              <div className="flex gap-2 justify-end">
+                <Button onClick={recalculate} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" /> Ricalcola da Partite
+                </Button>
                 <Button onClick={() => setIsAddTeamOpen(true)} variant="outline">
                   <Plus className="w-4 h-4 mr-2" /> Aggiungi Squadra
                 </Button>
@@ -131,28 +200,9 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
           )}
         </div>
 
-        <Dialog open={isAddStandingOpen} onOpenChange={setIsAddStandingOpen}>
-          <DialogContent className="bg-card border-border/50 text-card-foreground">
-            <DialogHeader>
-              <DialogTitle>Nuovo Campionato</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Nome Campionato</Label>
-                <Input value={newChampionshipName} onChange={(e) => setNewChampionshipName(e.target.value)} placeholder="Es. Torneo di Paestum 2026" className="bg-background border-border text-foreground" />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={createStanding} className="flex-1">
-                  <Plus className="w-4 h-4 mr-2" /> Crea
-                </Button>
-                <Button onClick={() => setIsAddStandingOpen(false)} variant="outline" className="flex-1">Annulla</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
         <AddTeamDialog
-          standingId={selectedStanding}
+          standingId={standingId}
+          categoryId={selectedCategory}
           open={isAddTeamOpen}
           onOpenChange={setIsAddTeamOpen}
           onAdded={() => queryClient.invalidateQueries({ queryKey: ["standings-entries"] })}

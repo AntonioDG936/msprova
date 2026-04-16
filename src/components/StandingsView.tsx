@@ -2,18 +2,15 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandingsTable } from "@/components/standings/StandingsTable";
 import { ArrowLeft } from "lucide-react";
 
 interface StandingsViewProps {
   onBack: () => void;
+  defaultCategory?: string; // category name
 }
 
-export const StandingsView = ({ onBack }: StandingsViewProps) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedStanding, setSelectedStanding] = useState<string>("");
-
+export const StandingsView = ({ onBack, defaultCategory }: StandingsViewProps) => {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -23,34 +20,38 @@ export const StandingsView = ({ onBack }: StandingsViewProps) => {
     },
   });
 
-  const { data: standings = [] } = useQuery({
-    queryKey: ["standings", selectedCategory],
+  const categoryId = defaultCategory
+    ? categories.find(c => c.name === defaultCategory)?.id || ""
+    : "";
+
+  const { data: standing } = useQuery({
+    queryKey: ["standing-for-view", categoryId],
     queryFn: async () => {
-      if (!selectedCategory) return [];
-      const { data, error } = await supabase
+      if (!categoryId) return null;
+      const { data } = await supabase
         .from("standings")
         .select("*")
-        .eq("category_id", selectedCategory)
-        .order("championship_name");
-      if (error) throw error;
+        .eq("category_id", categoryId)
+        .limit(1)
+        .maybeSingle();
       return data;
     },
-    enabled: !!selectedCategory,
+    enabled: !!categoryId,
   });
 
   const { data: entries = [] } = useQuery({
-    queryKey: ["standings-entries", selectedStanding],
+    queryKey: ["standings-entries", standing?.id],
     queryFn: async () => {
-      if (!selectedStanding) return [];
+      if (!standing?.id) return [];
       const { data, error } = await supabase
         .from("standings_entries")
         .select("*")
-        .eq("standings_id", selectedStanding)
+        .eq("standings_id", standing.id)
         .order("position");
       if (error) throw error;
       return data;
     },
-    enabled: !!selectedStanding,
+    enabled: !!standing?.id,
   });
 
   return (
@@ -60,38 +61,16 @@ export const StandingsView = ({ onBack }: StandingsViewProps) => {
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">Classifiche</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Classifica {defaultCategory || ""}
+          </h1>
         </div>
 
-        <div className="space-y-4">
-          <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setSelectedStanding(""); }}>
-            <SelectTrigger className="bg-card border-border text-foreground">
-              <SelectValue placeholder="Seleziona categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {selectedCategory && standings.length > 0 && (
-            <Select value={selectedStanding} onValueChange={setSelectedStanding}>
-              <SelectTrigger className="bg-card border-border text-foreground">
-                <SelectValue placeholder="Seleziona campionato" />
-              </SelectTrigger>
-              <SelectContent>
-                {standings.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.championship_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {selectedStanding && (
-            <StandingsTable entries={entries} canEdit={false} onUpdate={() => {}} />
-          )}
-        </div>
+        {entries.length > 0 ? (
+          <StandingsTable entries={entries} canEdit={false} onUpdate={() => {}} />
+        ) : (
+          <p className="text-muted-foreground text-center py-8">Nessuna classifica disponibile per questa categoria</p>
+        )}
       </div>
     </div>
   );
