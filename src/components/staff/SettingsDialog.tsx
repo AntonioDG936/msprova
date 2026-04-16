@@ -124,7 +124,7 @@ const MistersTab = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [accessCode, setAccessCode] = useState("");
-  const [category, setCategory] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const { data: misters = [] } = useQuery({
     queryKey: ["misters"],
@@ -144,15 +144,19 @@ const MistersTab = () => {
     },
   });
 
+  const toggleCategory = (catName: string) => {
+    setSelectedCategories(prev => prev.includes(catName) ? prev.filter(c => c !== catName) : [...prev, catName]);
+  };
+
   const addMister = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
     const { error } = await supabase.from("misters").insert({
       first_name: firstName.trim(), last_name: lastName.trim(),
-      access_code: accessCode.trim(), category: category || null,
+      access_code: accessCode.trim(), category: selectedCategories.join(",") || null,
     });
     if (error) { toast.error("Errore"); return; }
     toast.success("Mister aggiunto");
-    setFirstName(""); setLastName(""); setAccessCode(""); setCategory("");
+    setFirstName(""); setLastName(""); setAccessCode(""); setSelectedCategories([]);
     queryClient.invalidateQueries({ queryKey: ["misters"] });
   };
 
@@ -170,6 +174,13 @@ const MistersTab = () => {
     queryClient.invalidateQueries({ queryKey: ["misters"] });
   };
 
+  const updateMisterCategories = async (id: string, cats: string[]) => {
+    const { error } = await supabase.from("misters").update({ category: cats.join(",") || null }).eq("id", id);
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Categorie aggiornate");
+    queryClient.invalidateQueries({ queryKey: ["misters"] });
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="space-y-2">
@@ -177,38 +188,50 @@ const MistersTab = () => {
           <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nome" className="bg-muted/50 text-foreground" />
           <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Cognome" className="bg-muted/50 text-foreground" />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Input value={accessCode} onChange={(e) => setAccessCode(e.target.value)} placeholder="Codice accesso" className="bg-muted/50 text-foreground" />
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}
-            </SelectContent>
-          </Select>
+        <Input value={accessCode} onChange={(e) => setAccessCode(e.target.value)} placeholder="Codice accesso" className="bg-muted/50 text-foreground" />
+        <div className="flex flex-wrap gap-1">
+          {categories.map((c) => (
+            <Button key={c.id} size="sm" variant={selectedCategories.includes(c.name) ? "default" : "outline"}
+              onClick={() => toggleCategory(c.name)} className="text-xs h-7">
+              {c.name}
+            </Button>
+          ))}
         </div>
         <Button onClick={addMister} className="w-full bg-primary"><Plus className="w-4 h-4 mr-2" />Aggiungi Mister</Button>
       </div>
       <div className="space-y-2">
-        {misters.map((m) => (
-          <div key={m.id} className="bg-muted/30 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-foreground font-semibold">{m.first_name} {m.last_name}</span>
-              <Button onClick={() => deleteMister(m.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
-                <Trash2 className="w-4 h-4" />
-              </Button>
+        {misters.map((m) => {
+          const mCats = m.category ? m.category.split(",").map((s: string) => s.trim()) : [];
+          return (
+            <div key={m.id} className="bg-muted/30 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-foreground font-semibold">{m.first_name} {m.last_name}</span>
+                <Button onClick={() => deleteMister(m.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {categories.map((c) => (
+                  <Button key={c.id} size="sm" variant={mCats.includes(c.name) ? "default" : "outline"}
+                    onClick={() => {
+                      const newCats = mCats.includes(c.name) ? mCats.filter((x: string) => x !== c.name) : [...mCats, c.name];
+                      updateMisterCategories(m.id, newCats);
+                    }} className="text-xs h-6 px-2">
+                    {c.name}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Codice: </span>
+                <Input
+                  defaultValue={m.access_code}
+                  onBlur={(e) => { if (e.target.value !== m.access_code) updateCode(m.id, e.target.value); }}
+                  className="h-7 w-24 bg-muted/50 text-foreground text-xs"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Cat: {m.category || "—"}</span>
-              <span>|</span>
-              <span>Codice: </span>
-              <Input
-                defaultValue={m.access_code}
-                onBlur={(e) => { if (e.target.value !== m.access_code) updateCode(m.id, e.target.value); }}
-                className="h-7 w-24 bg-muted/50 text-foreground text-xs"
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
