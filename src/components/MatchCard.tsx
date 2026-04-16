@@ -20,6 +20,7 @@ interface MatchCardProps {
     current_second?: number | null;
     current_period?: number | null;
     is_interval?: boolean | null;
+    period_duration?: number | null;
     category?: { name: string } | null;
     category_id?: string;
     mister?: { first_name: string; last_name: string } | null;
@@ -33,36 +34,35 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [match, setMatch] = useState(initialMatch);
 
-  // Update when prop changes
   useEffect(() => {
     setMatch(initialMatch);
   }, [initialMatch]);
 
-  // Realtime subscription for live updates
   useEffect(() => {
     const channel = supabase
       .channel(`match-${match.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${match.id}`,
-        },
-        (payload) => {
-          setMatch(prev => ({ ...prev, ...payload.new }));
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${match.id}` }, (payload) => {
+        setMatch(prev => ({ ...prev, ...payload.new }));
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [match.id]);
 
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
+  const periodDuration = match.period_duration ?? 25;
+  const isInStoppage = isLive && (match.current_minute ?? 0) >= periodDuration;
+
+  const formatLiveTime = () => {
+    if (match.is_interval) return "INTERVALLO";
+    const min = match.current_minute ?? 0;
+    const sec = match.current_second ?? 0;
+    if (min >= periodDuration) {
+      const extra = min - periodDuration;
+      return `${periodDuration}' +${extra.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')} - T${match.current_period ?? 1}`;
+  };
 
   return (
     <>
@@ -82,15 +82,10 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
             )}
           </div>
 
-          {/* Live indicator */}
           {isLive && (
             <div className="flex items-center gap-2 mb-2 text-secondary font-semibold text-sm">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-              <span>
-                {match.is_interval
-                  ? "INTERVALLO"
-                  : `${(match.current_minute ?? 0).toString().padStart(2, '0')}:${(match.current_second ?? 0).toString().padStart(2, '0')} - T${match.current_period ?? 1}`}
-              </span>
+              <span>{formatLiveTime()}</span>
             </div>
           )}
 
@@ -114,9 +109,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
             {match.mister && (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span>
-                  {match.mister.first_name} {match.mister.last_name}
-                </span>
+                <span>{match.mister.first_name} {match.mister.last_name}</span>
               </div>
             )}
             {match.field && (

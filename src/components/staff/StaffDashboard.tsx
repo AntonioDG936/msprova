@@ -15,8 +15,9 @@ export const StaffDashboard = () => {
 
   const handleAppleCalendar = () => {
     const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-feed`;
-    const webcalUrl = baseUrl.replace(/^https?:\/\//, "webcal://");
-    window.location.href = webcalUrl;
+    // Apple Calendar expects webcal:// for subscription
+    const webcalUrl = baseUrl.replace("https://", "webcal://").replace("http://", "webcal://");
+    window.open(webcalUrl, "_self");
   };
 
   if (view === "classifiche") {

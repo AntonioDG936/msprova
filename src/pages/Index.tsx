@@ -62,19 +62,17 @@ const Index = () => {
 
   const activeCategory = viewCategory;
 
-  const { data: matches, isLoading: matchesLoading } = useQuery({
+  const { data: matches, isLoading: matchesLoading, refetch: refetchMatches } = useQuery({
     queryKey: ["matches", activeCategory],
     queryFn: async () => {
       if (!activeCategory) return [];
       const cat = categories.find((c) => c.name === activeCategory);
       if (!cat) return [];
 
-      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("matches")
         .select("*, category:categories(*), mister:misters(*), field:fields(*)")
         .eq("category_id", cat.id)
-        .gte("match_date", today)
         .order("match_date")
         .order("match_time");
       if (error) throw error;
@@ -82,6 +80,17 @@ const Index = () => {
     },
     enabled: !!activeCategory && categories.length > 0,
   });
+
+  // Realtime for matches
+  useEffect(() => {
+    const channel = supabase
+      .channel('all-matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["matches"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !category) return;
@@ -150,7 +159,7 @@ const Index = () => {
   }
 
   if (currentView === "classifiche") {
-    return <StandingsView onBack={() => setCurrentView("matches")} />;
+    return <StandingsView onBack={() => setCurrentView("matches")} defaultCategory={viewCategory || session.category} />;
   }
 
   if (currentView === "storico") {
@@ -170,7 +179,7 @@ const Index = () => {
         {/* Navigation */}
         <div className="flex gap-2 mb-4">
           <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
-            <Trophy className="w-4 h-4 mr-1" /> Classifiche
+            <Trophy className="w-4 h-4 mr-1" /> Classifica
           </Button>
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico

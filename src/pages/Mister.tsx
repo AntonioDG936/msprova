@@ -67,12 +67,10 @@ const MisterPage = () => {
       const cat = categories.find((c) => c.name === viewCategory);
       if (!cat) return [];
 
-      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("matches")
         .select("*, category:categories(*), mister:misters(*), field:fields(*)")
         .eq("category_id", cat.id)
-        .gte("match_date", today)
         .order("match_date")
         .order("match_time");
       if (error) throw error;
@@ -80,6 +78,20 @@ const MisterPage = () => {
     },
     enabled: !!viewCategory && categories.length > 0,
   });
+
+  // Get mister's categories for category buttons
+  const misterCategories = session?.category ? session.category.split(",").map(s => s.trim()) : [];
+
+  // Realtime for matches
+  useEffect(() => {
+    const channel = supabase
+      .channel('mister-matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["mister-matches"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
@@ -152,7 +164,7 @@ const MisterPage = () => {
   }
 
   if (currentView === "classifiche") {
-    return <StandingsView onBack={() => setCurrentView("matches")} />;
+    return <StandingsView onBack={() => setCurrentView("matches")} defaultCategory={viewCategory || session.category || undefined} />;
   }
 
   if (currentView === "storico") {
@@ -171,7 +183,7 @@ const MisterPage = () => {
 
         <div className="flex gap-2 mb-4">
           <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
-            <Trophy className="w-4 h-4 mr-1" /> Classifiche
+            <Trophy className="w-4 h-4 mr-1" /> Classifica
           </Button>
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico

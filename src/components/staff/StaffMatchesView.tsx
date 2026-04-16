@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -32,6 +32,17 @@ export const StaffMatchesView = () => {
       return data;
     },
   });
+
+  // Realtime subscription for staff matches
+  useEffect(() => {
+    const channel = supabase
+      .channel('staff-matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["staff-matches"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const deleteMatch = async (id: string) => {
     const { error } = await supabase.from("matches").delete().eq("id", id);
