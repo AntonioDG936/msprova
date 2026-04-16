@@ -56,6 +56,50 @@ export type Database = {
         }
         Relationships: []
       }
+      match_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          match_id: string
+          minute: number
+          period: number
+          player_name: string | null
+          second: number
+          team: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          match_id: string
+          minute?: number
+          period?: number
+          player_name?: string | null
+          second?: number
+          team?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          match_id?: string
+          minute?: number
+          period?: number
+          player_name?: string | null
+          second?: number
+          team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           category_id: string
@@ -72,9 +116,12 @@ export type Database = {
           mister_id: string | null
           notes: string | null
           opponent: string
+          period_duration: number | null
           score_away: number | null
           score_home: number | null
           status: string
+          stoppage_minutes: number | null
+          total_periods: number | null
           updated_at: string
         }
         Insert: {
@@ -92,9 +139,12 @@ export type Database = {
           mister_id?: string | null
           notes?: string | null
           opponent: string
+          period_duration?: number | null
           score_away?: number | null
           score_home?: number | null
           status?: string
+          stoppage_minutes?: number | null
+          total_periods?: number | null
           updated_at?: string
         }
         Update: {
@@ -112,9 +162,12 @@ export type Database = {
           mister_id?: string | null
           notes?: string | null
           opponent?: string
+          period_duration?: number | null
           score_away?: number | null
           score_home?: number | null
           status?: string
+          stoppage_minutes?: number | null
+          total_periods?: number | null
           updated_at?: string
         }
         Relationships: [
