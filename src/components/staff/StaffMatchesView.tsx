@@ -44,6 +44,7 @@ export const StaffMatchesView = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
+  const deleteMatch = async (id: string) => {
     const { error } = await supabase.from("matches").delete().eq("id", id);
     if (error) { toast.error("Errore"); return; }
     toast.success("Partita eliminata");
