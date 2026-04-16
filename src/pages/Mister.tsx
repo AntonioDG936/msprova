@@ -82,6 +82,17 @@ const MisterPage = () => {
   // Get mister's categories for category buttons
   const misterCategories = session?.category ? session.category.split(",").map(s => s.trim()) : [];
 
+  // Realtime for matches
+  useEffect(() => {
+    const channel = supabase
+      .channel('mister-matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["mister-matches"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
 
