@@ -33,7 +33,17 @@ export const StaffMatchesView = () => {
     },
   });
 
-  const deleteMatch = async (id: string) => {
+  // Realtime subscription for staff matches
+  useEffect(() => {
+    const channel = supabase
+      .channel('staff-matches-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["staff-matches"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
     const { error } = await supabase.from("matches").delete().eq("id", id);
     if (error) { toast.error("Errore"); return; }
     toast.success("Partita eliminata");
