@@ -67,12 +67,10 @@ const MisterPage = () => {
       const cat = categories.find((c) => c.name === viewCategory);
       if (!cat) return [];
 
-      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("matches")
         .select("*, category:categories(*), mister:misters(*), field:fields(*)")
         .eq("category_id", cat.id)
-        .gte("match_date", today)
         .order("match_date")
         .order("match_time");
       if (error) throw error;
@@ -80,6 +78,9 @@ const MisterPage = () => {
     },
     enabled: !!viewCategory && categories.length > 0,
   });
+
+  // Get mister's categories for category buttons
+  const misterCategories = session?.category ? session.category.split(",").map(s => s.trim()) : [];
 
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !accessCode.trim()) return;
