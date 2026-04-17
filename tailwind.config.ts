@@ -47,6 +47,14 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        stoppage: {
+          DEFAULT: "hsl(var(--stoppage))",
+          foreground: "hsl(var(--stoppage-foreground))",
+        },
+        victory: {
+          DEFAULT: "hsl(var(--victory))",
+          foreground: "hsl(var(--victory-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
