@@ -81,7 +81,8 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
 
       interval = setInterval(() => {
         const { newMinute, newSecond, totalSeconds } = calculateTime();
-        if (totalSeconds % 10 === 0) {
+        // sync DB ogni 5s come fallback (i client calcolano comunque dal match_start_time ogni 1s)
+        if (totalSeconds % 5 === 0) {
           supabase
             .from("matches")
             .update({

@@ -3,12 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { MapPin, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useLiveTime, getMapsEmbedUrl } from "@/lib/liveTimer";
 
 interface MatchDetailDialogProps {
   match: {
     id: string;
     opponent: string;
+    home_team?: string | null;
+    is_other_teams?: boolean | null;
     match_date: string;
     match_time: string;
     score_home: number | null;
@@ -20,6 +23,8 @@ interface MatchDetailDialogProps {
     current_period?: number | null;
     is_interval?: boolean | null;
     period_duration?: number | null;
+    stoppage_minutes?: number | null;
+    match_start_time?: string | null;
     category?: { name: string } | null;
     mister?: { first_name: string; last_name: string } | null;
     field?: { name: string; google_maps_url: string | null } | null;
@@ -32,8 +37,10 @@ interface MatchDetailDialogProps {
 export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDialogProps) => {
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
-  const periodDuration = (match as any).period_duration ?? 25;
-  const isInStoppage = isLive && (match.current_minute ?? 0) >= periodDuration;
+  const periodDuration = match.period_duration ?? 25;
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+
+  const live = useLiveTime(match);
 
   const { data: events = [], refetch: refetchEvents } = useQuery({
     queryKey: ["match-events", match.id],
@@ -71,23 +78,29 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
     return `${event.minute}'`;
   };
 
-  // Extract Google Maps embed URL from a regular Google Maps URL
-  const getEmbedUrl = (url: string) => {
-    // If it's already an embed URL, use it
-    if (url.includes("maps/embed")) return url;
-    // Use the URL as a query for the embed API
-    return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(url)}`;
-  };
+  const embedUrl = getMapsEmbedUrl(match.field?.google_maps_url);
 
-  const formatLiveTime = () => {
-    if (match.is_interval) return "INTERVALLO";
-    const min = match.current_minute ?? 0;
-    const sec = match.current_second ?? 0;
-    if (min >= periodDuration) {
-      const extra = min - periodDuration;
-      return `${periodDuration}' +${extra.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  const renderLiveTime = () => {
+    if (match.is_interval) return <span>INTERVALLO</span>;
+    if (live.isStoppage) {
+      return (
+        <span className="flex items-center gap-2">
+          <span>
+            {periodDuration}' +{live.stoppageMinute.toString().padStart(2, '0')}:{live.stoppageSecond.toString().padStart(2, '0')}
+          </span>
+          {match.stoppage_minutes != null && match.stoppage_minutes > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[1.6rem] h-[1.6rem] px-2 rounded-full bg-stoppage text-stoppage-foreground text-sm font-bold leading-none">
+              {match.stoppage_minutes}
+            </span>
+          )}
+        </span>
+      );
     }
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')} - Tempo ${match.current_period}`;
+    return (
+      <span>
+        {live.minute.toString().padStart(2, '0')}:{live.second.toString().padStart(2, '0')} - Tempo {match.current_period ?? 1}
+      </span>
+    );
   };
 
   return (
@@ -100,26 +113,26 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
         <div className="space-y-6">
           {/* Teams and Score */}
           <div className="text-center">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-2">
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground">Napoli Campania</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-foreground">{homeName}</h3>
               </div>
-              <div className="text-center space-y-2">
-                <div className="px-6 py-3 rounded-lg bg-muted">
+              <div className="text-center">
+                <div className="px-4 py-3 rounded-lg bg-muted">
                   <span className="text-2xl font-bold text-foreground">
                     {hasResult ? `${match.score_home} - ${match.score_away}` : "- -"}
                   </span>
                 </div>
               </div>
-              <div className="flex-1 text-right">
-                <h3 className="text-xl font-bold text-foreground">{match.opponent}</h3>
+              <div className="flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground">{match.opponent}</h3>
               </div>
             </div>
 
             {isLive && (
               <div className="flex items-center justify-center gap-2 mb-4 text-primary font-semibold">
                 <Clock className="w-5 h-5" />
-                <span className="text-lg">{formatLiveTime()}</span>
+                <span className="text-lg">{renderLiveTime()}</span>
               </div>
             )}
 
@@ -141,7 +154,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                     <span className="text-lg">{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
                     <div className="flex-1">
                       <span className="text-foreground font-medium">
-                        {event.team === "home" ? "Napoli Campania" : match.opponent}
+                        {event.team === "home" ? homeName : match.opponent}
                       </span>
                       {event.player_name && (
                         <span className="text-muted-foreground ml-2">— {event.player_name}</span>
@@ -162,7 +175,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
             <p className="text-muted-foreground">
               <strong className="text-foreground">Ora:</strong> {match.match_time.substring(0, 5)}
             </p>
-            {match.mister && (
+            {match.mister && !match.is_other_teams && (
               <p className="text-muted-foreground">
                 <strong className="text-foreground">Mister:</strong> {match.mister.first_name} {match.mister.last_name}
               </p>
@@ -177,7 +190,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
             </div>
           )}
 
-          {/* Map Preview */}
+          {/* Map Preview - SOLO dal link */}
           {match.field && (
             <div>
               <h4 className="text-sm font-semibold text-foreground/80 mb-2 flex items-center gap-2">
@@ -186,16 +199,17 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
               </h4>
               <div className="bg-muted rounded-lg p-4 mb-2">
                 <p className="text-foreground font-medium mb-2">{match.field.name}</p>
-                {match.field.google_maps_url && (
+                {embedUrl && (
                   <div className="rounded-lg overflow-hidden border border-border/50">
                     <iframe
+                      title="Mappa campo"
                       width="100%"
                       height="300"
                       style={{ border: 0 }}
                       loading="lazy"
                       allowFullScreen
                       referrerPolicy="no-referrer-when-downgrade"
-                      src={getEmbedUrl(match.field.google_maps_url)}
+                      src={embedUrl}
                     />
                   </div>
                 )}

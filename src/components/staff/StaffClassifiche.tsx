@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandingsTable } from "@/components/standings/StandingsTable";
 import { AddTeamDialog } from "@/components/standings/AddTeamDialog";
-import { Plus, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Plus, ArrowLeft, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface StaffClassificheProps {
@@ -16,6 +20,7 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
+  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -26,7 +31,7 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
     },
   });
 
-  // Auto-find or create standings for selected category
+  // Auto-find or create standings for selected category (no name prompt — è un torneo)
   const { data: standing } = useQuery({
     queryKey: ["standing-for-category", selectedCategory],
     queryFn: async () => {
@@ -34,7 +39,6 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
       const cat = categories.find(c => c.id === selectedCategory);
       if (!cat) return null;
 
-      // Check existing
       const { data: existing } = await supabase
         .from("standings")
         .select("*")
@@ -44,7 +48,6 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
 
       if (existing) return existing;
 
-      // Auto-create
       const { data: created, error } = await supabase
         .from("standings")
         .insert({ category_id: selectedCategory, championship_name: `Torneo ${cat.name}` })
@@ -73,90 +76,34 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
     enabled: !!standingId,
   });
 
-  // Auto-calculate standings from completed matches
-  const recalculate = async () => {
-    if (!standingId || !selectedCategory) return;
+  // Realtime: aggiorna le entries quando il trigger DB ricalcola
+  useEffect(() => {
+    if (!standingId) return;
+    const channel = supabase
+      .channel(`standings-${standingId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'standings_entries', filter: `standings_id=eq.${standingId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["standings-entries", standingId] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [standingId, queryClient]);
 
-    // Get all completed matches for this category
-    const { data: matches } = await supabase
-      .from("matches")
-      .select("*")
-      .eq("category_id", selectedCategory)
-      .eq("status", "completed");
+  // Reset classifica: azzera tutti i punti/gol di tutte le squadre
+  const handleResetConfirmed = async () => {
+    if (!standingId) return;
+    const { error } = await supabase
+      .from("standings_entries")
+      .update({
+        points: 0, played: 0, won: 0, drawn: 0, lost: 0,
+        goals_for: 0, goals_against: 0, goal_difference: 0,
+      })
+      .eq("standings_id", standingId);
 
-    if (!matches) return;
-
-    // Build stats per team
-    const stats: Record<string, { played: number; won: number; drawn: number; lost: number; goals_for: number; goals_against: number; points: number }> = {};
-
-    // Initialize from existing entries
-    for (const entry of entries) {
-      stats[entry.team_name] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
-    }
-
-    // Ensure Napoli Campania exists
-    if (!stats["Napoli Campania"]) {
-      stats["Napoli Campania"] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
-    }
-
-    for (const m of matches) {
-      if (m.score_home === null || m.score_away === null) continue;
-      const home = "Napoli Campania";
-      const away = m.opponent;
-
-      if (!stats[home]) stats[home] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
-      if (!stats[away]) stats[away] = { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 };
-
-      stats[home].played++;
-      stats[away].played++;
-      stats[home].goals_for += m.score_home;
-      stats[home].goals_against += m.score_away;
-      stats[away].goals_for += m.score_away;
-      stats[away].goals_against += m.score_home;
-
-      if (m.score_home > m.score_away) {
-        stats[home].won++; stats[home].points += 3;
-        stats[away].lost++;
-      } else if (m.score_home < m.score_away) {
-        stats[away].won++; stats[away].points += 3;
-        stats[home].lost++;
-      } else {
-        stats[home].drawn++; stats[home].points += 1;
-        stats[away].drawn++; stats[away].points += 1;
-      }
-    }
-
-    // Sort by points, then goal difference
-    const sorted = Object.entries(stats).sort(([, a], [, b]) => {
-      const diffA = a.goals_for - a.goals_against;
-      const diffB = b.goals_for - b.goals_against;
-      if (b.points !== a.points) return b.points - a.points;
-      return diffB - diffA;
-    });
-
-    // Delete old entries and re-insert
-    await supabase.from("standings_entries").delete().eq("standings_id", standingId);
-
-    const newEntries = sorted.map(([team, s], i) => ({
-      standings_id: standingId,
-      team_name: team,
-      position: i + 1,
-      points: s.points,
-      played: s.played,
-      won: s.won,
-      drawn: s.drawn,
-      lost: s.lost,
-      goals_for: s.goals_for,
-      goals_against: s.goals_against,
-      goal_difference: s.goals_for - s.goals_against,
-    }));
-
-    if (newEntries.length > 0) {
-      await supabase.from("standings_entries").insert(newEntries);
-    }
-
-    toast.success("Classifica ricalcolata");
-    queryClient.invalidateQueries({ queryKey: ["standings-entries"] });
+    if (error) { toast.error("Errore nel reset"); return; }
+    toast.success("Classifica resettata");
+    queryClient.invalidateQueries({ queryKey: ["standings-entries", standingId] });
+    setResetStep(0);
   };
 
   return (
@@ -183,13 +130,53 @@ export const StaffClassifiche = ({ onBack }: StaffClassificheProps) => {
 
           {standingId && (
             <div className="space-y-4">
-              <div className="flex gap-2 justify-end">
-                <Button onClick={recalculate} variant="outline">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Ricalcola da Partite
-                </Button>
+              <p className="text-xs text-muted-foreground italic">
+                La classifica si aggiorna automaticamente dai risultati delle partite.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-end">
                 <Button onClick={() => setIsAddTeamOpen(true)} variant="outline">
                   <Plus className="w-4 h-4 mr-2" /> Aggiungi Squadra
                 </Button>
+
+                {/* Reset con DOPPIA conferma */}
+                <AlertDialog open={resetStep === 1} onOpenChange={(o) => { if (!o) setResetStep(0); }}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" onClick={() => setResetStep(1)}>
+                      <RotateCcw className="w-4 h-4 mr-2" /> Reset Classifica
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Questa azione azzererà tutti i punti, gol e statistiche della classifica.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setResetStep(0)}>Annulla</AlertDialogCancel>
+                      <AlertDialogAction onClick={(e) => { e.preventDefault(); setResetStep(2); }}>
+                        Continua
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={resetStep === 2} onOpenChange={(o) => { if (!o) setResetStep(0); }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Conferma definitiva</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Vuoi davvero resettare la classifica? Questa operazione non può essere annullata.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setResetStep(0)}>No, annulla</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetConfirmed} className="bg-destructive text-destructive-foreground">
+                        Sì, resetta
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
               <StandingsTable
                 entries={entries}

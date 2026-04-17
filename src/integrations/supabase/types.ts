@@ -17,18 +17,24 @@ export type Database = {
       categories: {
         Row: {
           created_at: string
+          default_period_duration: number
+          default_total_periods: number
           id: string
           name: string
           sort_order: number
         }
         Insert: {
           created_at?: string
+          default_period_duration?: number
+          default_total_periods?: number
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
           created_at?: string
+          default_period_duration?: number
+          default_total_periods?: number
           id?: string
           name?: string
           sort_order?: number
@@ -55,6 +61,145 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      final_phase_matches: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string | null
+          phase_id: string
+          round: string
+          slot: number
+          team_away: string | null
+          team_home: string | null
+          updated_at: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          phase_id: string
+          round: string
+          slot?: number
+          team_away?: string | null
+          team_home?: string | null
+          updated_at?: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          phase_id?: string
+          round?: string
+          slot?: number
+          team_away?: string | null
+          team_home?: string | null
+          updated_at?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_phase_matches_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_phase_matches_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "final_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      final_phase_teams: {
+        Row: {
+          created_at: string
+          id: string
+          phase_id: string
+          seed_position: number
+          team_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phase_id: string
+          seed_position?: number
+          team_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phase_id?: string
+          seed_position?: number
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_phase_teams_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "final_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      final_phases: {
+        Row: {
+          category_id: string
+          created_at: string
+          has_triangolare: boolean
+          id: string
+          mode: string
+          name: string
+          period_duration: number
+          status: string
+          total_periods: number
+          triangolare_mode: string | null
+          updated_at: string
+          winner_team: string | null
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          has_triangolare?: boolean
+          id?: string
+          mode?: string
+          name: string
+          period_duration?: number
+          status?: string
+          total_periods?: number
+          triangolare_mode?: string | null
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          has_triangolare?: boolean
+          id?: string
+          mode?: string
+          name?: string
+          period_duration?: number
+          status?: string
+          total_periods?: number
+          triangolare_mode?: string | null
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_phases_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       match_events: {
         Row: {
@@ -108,8 +253,10 @@ export type Database = {
           current_period: number | null
           current_second: number | null
           field_id: string | null
+          home_team: string | null
           id: string
           is_interval: boolean | null
+          is_other_teams: boolean
           match_date: string
           match_start_time: string | null
           match_time: string
@@ -131,8 +278,10 @@ export type Database = {
           current_period?: number | null
           current_second?: number | null
           field_id?: string | null
+          home_team?: string | null
           id?: string
           is_interval?: boolean | null
+          is_other_teams?: boolean
           match_date: string
           match_start_time?: string | null
           match_time: string
@@ -154,8 +303,10 @@ export type Database = {
           current_period?: number | null
           current_second?: number | null
           field_id?: string | null
+          home_team?: string | null
           id?: string
           is_interval?: boolean | null
+          is_other_teams?: boolean
           match_date?: string
           match_start_time?: string | null
           match_time?: string
@@ -373,7 +524,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      recalculate_standings_for_category: {
+        Args: { p_category_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

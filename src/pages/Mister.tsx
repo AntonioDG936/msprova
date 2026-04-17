@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MatchCard } from "@/components/MatchCard";
-import { Loader2, Trophy, History } from "lucide-react";
+import { Loader2, Trophy, History, Users2 } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
 import { toast } from "sonner";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
 
-type View = "matches" | "classifiche" | "storico";
+type View = "matches" | "classifiche" | "storico" | "other_teams";
 
 const MisterPage = () => {
   const queryClient = useQueryClient();
@@ -44,7 +44,7 @@ const MisterPage = () => {
 
       if (data) {
         setSession({ first_name: data.first_name, last_name: data.last_name, category: data.category });
-        setViewCategory(data.category);
+        setViewCategory(data.category ? data.category.split(",")[0].trim() : null);
       }
       setLoading(false);
     };
@@ -71,12 +71,28 @@ const MisterPage = () => {
         .from("matches")
         .select("*, category:categories(*), mister:misters(*), field:fields(*)")
         .eq("category_id", cat.id)
+        .eq("is_other_teams", false)
         .order("match_date")
         .order("match_time");
       if (error) throw error;
       return data;
     },
     enabled: !!viewCategory && categories.length > 0,
+  });
+
+  const { data: otherTeamsMatches = [], isLoading: otherLoading } = useQuery({
+    queryKey: ["mister-other-teams"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("matches")
+        .select("*, category:categories(*), field:fields(*)")
+        .eq("is_other_teams", true)
+        .order("match_date")
+        .order("match_time");
+      if (error) throw error;
+      return data;
+    },
+    enabled: currentView === "other_teams",
   });
 
   // Get mister's categories for category buttons
@@ -88,6 +104,7 @@ const MisterPage = () => {
       .channel('mister-matches-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
         queryClient.invalidateQueries({ queryKey: ["mister-matches"] });
+        queryClient.invalidateQueries({ queryKey: ["mister-other-teams"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -120,7 +137,7 @@ const MisterPage = () => {
     });
 
     setSession({ first_name: mister.first_name, last_name: mister.last_name, category: mister.category });
-    setViewCategory(mister.category);
+    setViewCategory(mister.category ? mister.category.split(",")[0].trim() : null);
   };
 
   if (loading) {
@@ -164,7 +181,7 @@ const MisterPage = () => {
   }
 
   if (currentView === "classifiche") {
-    return <StandingsView onBack={() => setCurrentView("matches")} defaultCategory={viewCategory || session.category || undefined} />;
+    return <StandingsView onBack={() => setCurrentView("matches")} defaultCategory={viewCategory || misterCategories[0] || undefined} />;
   }
 
   if (currentView === "storico") {
@@ -181,51 +198,82 @@ const MisterPage = () => {
           </p>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <Button onClick={() => setCurrentView("classifiche")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <Trophy className="w-4 h-4 mr-1" /> Classifica
           </Button>
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico
           </Button>
+          <Button
+            onClick={() => setCurrentView(currentView === "other_teams" ? "matches" : "other_teams")}
+            variant={currentView === "other_teams" ? "default" : "outline"}
+            size="sm"
+            className={currentView === "other_teams" ? "" : "text-foreground border-primary/30"}
+          >
+            <Users2 className="w-4 h-4 mr-1" /> {currentView === "other_teams" ? "Mie Partite" : "Altre Squadre"}
+          </Button>
         </div>
 
-        {!showOtherCategories ? (
-          <Button onClick={() => setShowOtherCategories(true)} variant="outline" size="sm" className="mb-4 text-foreground border-primary/30">
-            Altre Categorie
-          </Button>
+        {currentView === "other_teams" ? (
+          <>
+            <h2 className="text-lg font-semibold text-foreground mb-3">Partite tra Altre Squadre</h2>
+            {otherLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : otherTeamsMatches.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">Nessuna partita tra altre squadre</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {otherTeamsMatches.map((m: any) => (
+                  <MatchCard key={m.id} match={m} showCategory={true} />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button onClick={() => { setViewCategory(session.category); setShowOtherCategories(false); }} variant={viewCategory === session.category ? "default" : "outline"} size="sm" className={viewCategory === session.category ? "" : "text-foreground border-primary/30"}>
-              {session.category} (mia)
-            </Button>
-            {categories.filter(c => c.name !== session.category).map((c) => (
-              <Button key={c.id} onClick={() => setViewCategory(c.name)} variant={viewCategory === c.name ? "default" : "outline"} size="sm" className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}>
-                {c.name}
+          <>
+            {!showOtherCategories ? (
+              <Button onClick={() => setShowOtherCategories(true)} variant="outline" size="sm" className="mb-4 text-foreground border-primary/30">
+                Altre Categorie
               </Button>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {misterCategories.map((cat) => (
+                  <Button key={cat} onClick={() => { setViewCategory(cat); }} variant={viewCategory === cat ? "default" : "outline"} size="sm" className={viewCategory === cat ? "" : "text-foreground border-primary/30"}>
+                    {cat} (mia)
+                  </Button>
+                ))}
+                {categories.filter(c => !misterCategories.includes(c.name)).map((c) => (
+                  <Button key={c.id} onClick={() => setViewCategory(c.name)} variant={viewCategory === c.name ? "default" : "outline"} size="sm" className={viewCategory === c.name ? "" : "text-foreground border-primary/30"}>
+                    {c.name}
+                  </Button>
+                ))}
+              </div>
+            )}
 
-        {matchesLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : !matches || matches.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Nessuna partita programmata</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {matches.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match as any}
-                showCategory={true}
-                onUpdate={() => queryClient.invalidateQueries({ queryKey: ["mister-matches"] })}
-              />
-            ))}
-          </div>
+            {matchesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : !matches || matches.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Nessuna partita programmata</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {matches.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match as any}
+                    showCategory={true}
+                    onUpdate={() => queryClient.invalidateQueries({ queryKey: ["mister-matches"] })}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

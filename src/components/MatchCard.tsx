@@ -5,11 +5,14 @@ import { Calendar, Clock, MapPin, User, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MatchDetailDialog } from "@/components/matches/MatchDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useLiveTime } from "@/lib/liveTimer";
 
 interface MatchCardProps {
   match: {
     id: string;
     opponent: string;
+    home_team?: string | null;
+    is_other_teams?: boolean | null;
     match_date: string;
     match_time: string;
     score_home: number | null;
@@ -21,6 +24,8 @@ interface MatchCardProps {
     current_period?: number | null;
     is_interval?: boolean | null;
     period_duration?: number | null;
+    stoppage_minutes?: number | null;
+    match_start_time?: string | null;
     category?: { name: string } | null;
     category_id?: string;
     mister?: { first_name: string; last_name: string } | null;
@@ -51,17 +56,33 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
   const periodDuration = match.period_duration ?? 25;
-  const isInStoppage = isLive && (match.current_minute ?? 0) >= periodDuration;
 
-  const formatLiveTime = () => {
-    if (match.is_interval) return "INTERVALLO";
-    const min = match.current_minute ?? 0;
-    const sec = match.current_second ?? 0;
-    if (min >= periodDuration) {
-      const extra = min - periodDuration;
-      return `${periodDuration}' +${extra.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  // Tick ogni secondo: usa l'hook che calcola da match_start_time
+  const live = useLiveTime(match);
+
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+
+  const renderLiveTime = () => {
+    if (match.is_interval) return <span>INTERVALLO</span>;
+    if (live.isStoppage) {
+      return (
+        <span className="flex items-center gap-1.5">
+          <span>
+            {periodDuration}' +{live.stoppageMinute.toString().padStart(2, '0')}:{live.stoppageSecond.toString().padStart(2, '0')}
+          </span>
+          {match.stoppage_minutes != null && match.stoppage_minutes > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1.5 rounded-full bg-stoppage text-stoppage-foreground text-xs font-bold leading-none">
+              {match.stoppage_minutes}
+            </span>
+          )}
+        </span>
+      );
     }
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')} - T${match.current_period ?? 1}`;
+    return (
+      <span>
+        {live.minute.toString().padStart(2, '0')}:{live.second.toString().padStart(2, '0')} - T{match.current_period ?? 1}
+      </span>
+    );
   };
 
   return (
@@ -71,12 +92,12 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
         className="cursor-pointer bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all hover:shadow-[var(--shadow-glow)]"
       >
         <CardContent className="p-4">
-          <div className="flex justify-between items-start mb-3">
+          <div className="flex justify-between items-start mb-3 gap-2">
             <h3 className="font-bold text-base text-foreground flex-1">
-              Napoli Campania vs {match.opponent}
+              {homeName} vs {match.opponent}
             </h3>
             {showCategory && match.category && (
-              <span className="text-sm font-bold text-primary ml-3 whitespace-nowrap">
+              <span className="text-sm font-bold text-accent ml-2 whitespace-nowrap">
                 {match.category.name}
               </span>
             )}
@@ -85,7 +106,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
           {isLive && (
             <div className="flex items-center gap-2 mb-2 text-secondary font-semibold text-sm">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-              <span>{formatLiveTime()}</span>
+              {renderLiveTime()}
             </div>
           )}
 
@@ -106,7 +127,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
               <Clock className="w-4 h-4" />
               <span>{match.match_time.substring(0, 5)}</span>
             </div>
-            {match.mister && (
+            {match.mister && !match.is_other_teams && (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span>{match.mister.first_name} {match.mister.last_name}</span>
