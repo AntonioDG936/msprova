@@ -71,7 +71,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
             {periodDuration}' +{live.stoppageMinute.toString().padStart(2, '0')}:{live.stoppageSecond.toString().padStart(2, '0')}
           </span>
           {match.stoppage_minutes != null && match.stoppage_minutes > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1.5 rounded-full bg-red-600 text-white text-xs font-bold leading-none">
+            <span className="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1.5 rounded-full bg-stoppage text-stoppage-foreground text-xs font-bold leading-none">
               {match.stoppage_minutes}
             </span>
           )}
