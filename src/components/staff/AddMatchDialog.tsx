@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,22 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 interface AddMatchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultIsOtherTeams?: boolean;
 }
 
-export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
+export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false }: AddMatchDialogProps) => {
   const queryClient = useQueryClient();
+  const [isOtherTeams, setIsOtherTeams] = useState(defaultIsOtherTeams);
   const [categoryId, setCategoryId] = useState("");
   const [misterId, setMisterId] = useState("");
   const [opponent, setOpponent] = useState("");
+  const [homeTeam, setHomeTeam] = useState("");
   const [fieldId, setFieldId] = useState("");
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [periodDuration, setPeriodDuration] = useState<number | "">("");
+  const [totalPeriods, setTotalPeriods] = useState<number | "">("");
+
+  useEffect(() => {
+    if (open) setIsOtherTeams(defaultIsOtherTeams);
+  }, [open, defaultIsOtherTeams]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -62,20 +72,52 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
     enabled: !!categoryId,
   });
 
+  // Carica i default tempi della categoria
+  useEffect(() => {
+    if (!categoryId) return;
+    const cat = categories.find((c: any) => c.id === categoryId);
+    if (cat) {
+      setPeriodDuration(cat.default_period_duration ?? 25);
+      setTotalPeriods(cat.default_total_periods ?? 2);
+    }
+  }, [categoryId, categories]);
+
+  const reset = () => {
+    setCategoryId(""); setMisterId(""); setOpponent(""); setHomeTeam("");
+    setFieldId(""); setMatchDate(""); setMatchTime(""); setNotes("");
+    setPeriodDuration(""); setTotalPeriods(""); setIsOtherTeams(false);
+  };
+
   const handleSubmit = async () => {
-    if (!categoryId || !opponent.trim() || !matchDate || !matchTime) {
-      toast.error("Compila tutti i campi obbligatori");
+    if (!categoryId || !matchDate || !matchTime) {
+      toast.error("Compila Categoria, Data e Ora");
       return;
+    }
+
+    if (isOtherTeams) {
+      if (!homeTeam.trim() || !opponent.trim()) {
+        toast.error("Inserisci entrambe le squadre");
+        return;
+      }
+    } else {
+      if (!opponent.trim()) {
+        toast.error("Inserisci la squadra avversaria");
+        return;
+      }
     }
 
     const { error } = await supabase.from("matches").insert({
       category_id: categoryId,
-      mister_id: misterId || null,
+      mister_id: isOtherTeams ? null : (misterId || null),
       opponent: opponent.trim(),
+      home_team: isOtherTeams ? homeTeam.trim() : null,
+      is_other_teams: isOtherTeams,
       field_id: fieldId || null,
       match_date: matchDate,
       match_time: matchTime,
       notes: notes.trim() || null,
+      period_duration: typeof periodDuration === "number" ? periodDuration : 25,
+      total_periods: typeof totalPeriods === "number" ? totalPeriods : 2,
     });
 
     if (error) {
@@ -87,7 +129,7 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
     queryClient.invalidateQueries({ queryKey: ["matches"] });
     queryClient.invalidateQueries({ queryKey: ["staff-matches"] });
     onOpenChange(false);
-    setCategoryId(""); setMisterId(""); setOpponent(""); setFieldId(""); setMatchDate(""); setMatchTime(""); setNotes("");
+    reset();
   };
 
   return (
@@ -97,6 +139,18 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
           <DialogTitle className="text-foreground">Aggiungi Partita</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Spunta ALTRE SQUADRE */}
+          <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+            <Checkbox
+              id="otherTeams"
+              checked={isOtherTeams}
+              onCheckedChange={(c) => setIsOtherTeams(!!c)}
+            />
+            <Label htmlFor="otherTeams" className="text-foreground cursor-pointer font-semibold">
+              ALTRE SQUADRE (partita senza Napoli Campania)
+            </Label>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-foreground">Categoria *</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
@@ -107,23 +161,41 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-foreground">Mister</Label>
-            <Select value={misterId} onValueChange={setMisterId}>
-              <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
-              <SelectContent>
-                {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isOtherTeams && (
+            <div className="space-y-2">
+              <Label className="text-foreground">Mister</Label>
+              <Select value={misterId} onValueChange={setMisterId}>
+                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>
+                  {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {isOtherTeams && (
+            <div className="space-y-2">
+              <Label className="text-foreground">Squadra di casa *</Label>
+              {opponentTeams.length > 0 ? (
+                <Select value={homeTeam} onValueChange={setHomeTeam}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                  <SelectContent>
+                    {opponentTeams.map((t) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} className="bg-muted/50 text-foreground" placeholder="Nome squadra casa" />
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
-            <Label className="text-foreground">Squadra avversaria *</Label>
+            <Label className="text-foreground">{isOtherTeams ? "Squadra ospite *" : "Squadra avversaria *"}</Label>
             {opponentTeams.length > 0 ? (
               <Select value={opponent} onValueChange={setOpponent}>
-                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona o digita" /></SelectTrigger>
+                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
                 <SelectContent>
-                  {opponentTeams.map((t) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}
+                  {opponentTeams.filter((t) => t.name !== homeTeam).map((t) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             ) : (
@@ -149,6 +221,17 @@ export const AddMatchDialog = ({ open, onOpenChange }: AddMatchDialogProps) => {
             <div className="space-y-2">
               <Label className="text-foreground">Ora *</Label>
               <Input type="time" value={matchTime} onChange={(e) => setMatchTime(e.target.value)} className="bg-muted/50 text-foreground" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-foreground text-xs">Durata tempo (min)</Label>
+              <Input type="number" min="1" value={periodDuration} onChange={(e) => setPeriodDuration(e.target.value ? parseInt(e.target.value) : "")} className="bg-muted/50 text-foreground" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground text-xs">Numero tempi</Label>
+              <Input type="number" min="1" value={totalPeriods} onChange={(e) => setTotalPeriods(e.target.value ? parseInt(e.target.value) : "")} className="bg-muted/50 text-foreground" />
             </div>
           </div>
 
