@@ -121,7 +121,8 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
     });
 
     if (error) {
-      toast.error("Errore nella creazione della partita");
+      console.error("[AddMatch] insert error:", error);
+      toast.error(`Errore: ${error.message}`);
       return;
     }
 
