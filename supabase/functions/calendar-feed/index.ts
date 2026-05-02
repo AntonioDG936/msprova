@@ -28,10 +28,10 @@ serve(async (req) => {
     const lines: string[] = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Torneo di Paestum//IT",
+      "PRODID:-//Torneo di Sibari//IT",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
-      "X-WR-CALNAME:Torneo di Paestum",
+      "X-WR-CALNAME:Torneo di Sibari",
       "X-WR-TIMEZONE:Europe/Rome",
     ];
 
@@ -50,7 +50,7 @@ serve(async (req) => {
       const location = match.field?.name || "";
 
       lines.push("BEGIN:VEVENT");
-      lines.push(`UID:${match.id}@torneo-paestum`);
+      lines.push(`UID:${match.id}@torneo-sibari`);
       lines.push(`DTSTAMP:${now.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`);
       lines.push(`DTSTART;TZID=Europe/Rome:${startTime}`);
       lines.push(`DTEND;TZID=Europe/Rome:${endTime}`);
@@ -68,7 +68,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="torneo-paestum.ics"',
+        "Content-Disposition": 'attachment; filename="torneo-sibari.ics"',
       },
     });
   } catch (err) {

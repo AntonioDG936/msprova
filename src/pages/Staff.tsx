@@ -36,7 +36,7 @@ const Staff = () => {
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
-              Torneo di Paestum
+              Torneo di Sibari
             </CardTitle>
             <p className="text-accent text-sm sm:text-base">Area Staff</p>
           </CardHeader>
