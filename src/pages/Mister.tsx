@@ -154,7 +154,7 @@ const MisterPage = () => {
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
-              Torneo di Paestum
+              Torneo di Sibari
             </CardTitle>
             <p className="text-accent text-sm sm:text-base">Accesso Mister</p>
           </CardHeader>
@@ -192,7 +192,7 @@ const MisterPage = () => {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Paestum</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
           <p className="text-accent text-sm">
             Mister {session.first_name} {session.last_name} — Categoria {viewCategory}
           </p>

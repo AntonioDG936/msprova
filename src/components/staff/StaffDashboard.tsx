@@ -53,7 +53,7 @@ export const StaffDashboard = () => {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Paestum</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
           <p className="text-accent text-sm">Area Staff</p>
         </div>
 
