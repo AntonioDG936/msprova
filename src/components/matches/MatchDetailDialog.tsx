@@ -71,11 +71,13 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
   }, [match.id, open, refetchEvents]);
 
   const formatEventTime = (event: any) => {
+    const period = event.period ?? 1;
     if (event.minute >= periodDuration) {
-      const extra = event.minute - periodDuration;
-      return `${periodDuration}'+${extra}'`;
+      const extra = event.minute - periodDuration + 1;
+      return `${period * periodDuration}'+${extra}'`;
     }
-    return `${event.minute}'`;
+    const cumMinute = (period - 1) * periodDuration + event.minute;
+    return `${cumMinute + 1}'`;
   };
 
   const embedUrl = getMapsEmbedUrl(match.field?.google_maps_url);
@@ -160,7 +162,6 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                         <span className="text-muted-foreground ml-2">— {event.player_name}</span>
                       )}
                     </div>
-                    <span className="text-muted-foreground text-xs">T{event.period}</span>
                   </div>
                 ))}
               </div>
