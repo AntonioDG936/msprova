@@ -68,16 +68,21 @@ const MisterPage = () => {
   });
 
   const { data: matches, isLoading: matchesLoading } = useQuery({
-    queryKey: ["mister-matches", viewCategory],
+    queryKey: ["mister-matches", viewCategory, session?.id],
     queryFn: async () => {
       if (!viewCategory) return [];
       const cat = categories.find((c) => c.name === viewCategory);
       if (!cat) return [];
 
+      // Partite della categoria selezionata + partite assegnate al mister in altre categorie
+      const filters = session?.id
+        ? `category_id.eq.${cat.id},mister_id.eq.${session.id}`
+        : `category_id.eq.${cat.id}`;
+
       const { data, error } = await supabase
         .from("matches")
         .select("*, category:categories(*), mister:misters(*), field:fields(*)")
-        .eq("category_id", cat.id)
+        .or(filters)
         .eq("is_other_teams", false)
         .order("match_date")
         .order("match_time");
