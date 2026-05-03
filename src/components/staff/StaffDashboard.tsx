@@ -25,6 +25,10 @@ export const StaffDashboard = () => {
     return <StaffClassifiche onBack={() => setView("home")} />;
   }
 
+  if (view === "final_phases") {
+    return <FinalPhasesView onBack={() => setView("home")} />;
+  }
+
   if (view === "matches") {
     return (
       <div className="min-h-screen">
