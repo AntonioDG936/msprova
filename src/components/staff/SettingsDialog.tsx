@@ -99,6 +99,14 @@ const CategoriesTab = () => {
     queryClient.invalidateQueries({ queryKey: ["categories"] });
   };
 
+  const updateDefaults = async (id: string, field: "default_period_duration" | "default_total_periods", value: number) => {
+    if (!value || value < 1) return;
+    const { error } = await supabase.from("categories").update({ [field]: value }).eq("id", id);
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Default aggiornati");
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="flex gap-2">
@@ -106,12 +114,40 @@ const CategoriesTab = () => {
         <Button onClick={addCategory} size="icon" className="bg-primary"><Plus className="w-4 h-4" /></Button>
       </div>
       <div className="space-y-2">
-        {categories.map((c) => (
-          <div key={c.id} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
-            <span className="text-foreground">{c.name}</span>
-            <Button onClick={() => deleteCategory(c.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
-              <Trash2 className="w-4 h-4" />
-            </Button>
+        {categories.map((c: any) => (
+          <div key={c.id} className="bg-muted/30 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-foreground font-semibold">{c.name}</span>
+              <Button onClick={() => deleteCategory(c.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-foreground text-[10px]">Durata tempo (min)</Label>
+                <Input
+                  type="number" min={1}
+                  defaultValue={c.default_period_duration ?? 25}
+                  onBlur={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (v && v !== c.default_period_duration) updateDefaults(c.id, "default_period_duration", v);
+                  }}
+                  className="bg-muted/50 text-foreground h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-foreground text-[10px]">Numero tempi</Label>
+                <Input
+                  type="number" min={1}
+                  defaultValue={c.default_total_periods ?? 2}
+                  onBlur={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (v && v !== c.default_total_periods) updateDefaults(c.id, "default_total_periods", v);
+                  }}
+                  className="bg-muted/50 text-foreground h-8 text-xs"
+                />
+              </div>
+            </div>
           </div>
         ))}
       </div>
