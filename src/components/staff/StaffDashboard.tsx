@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Trophy, History, CalendarDays, Apple, Edit, Plus, Settings } from "lucide-react";
+import { Trophy, History, CalendarDays, Apple, Edit, Plus, Settings, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StaffMatchesView } from "./StaffMatchesView";
 import { SettingsDialog } from "./SettingsDialog";
 import { StaffClassifiche } from "./StaffClassifiche";
 import { MatchHistoryDialog } from "./MatchHistoryDialog";
+import { FinalPhasesView } from "./FinalPhasesView";
 
-type View = "home" | "matches" | "classifiche";
+type View = "home" | "matches" | "classifiche" | "final_phases";
 
 export const StaffDashboard = () => {
   const [view, setView] = useState<View>("home");
