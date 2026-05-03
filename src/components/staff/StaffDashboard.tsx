@@ -47,10 +47,10 @@ export const StaffDashboard = () => {
 
   const mainButtons = [
     { icon: Trophy, label: "Classifiche", onClick: () => setView("classifiche"), color: "bg-primary hover:bg-primary/90" },
+    { icon: Award, label: "Fasi Finali", onClick: () => setView("final_phases"), color: "bg-secondary hover:bg-secondary/90" },
     { icon: CalendarDays, label: "Calendario", onClick: handleAppleCalendar, color: "bg-primary hover:bg-primary/90" },
     { icon: History, label: "Storico Partite", onClick: () => setIsHistoryOpen(true), color: "bg-primary hover:bg-primary/90" },
     { icon: Edit, label: "Gestisci Partite", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
-    { icon: Plus, label: "Aggiungi Partita", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
     { icon: Settings, label: "Impostazioni", onClick: () => setIsSettingsOpen(true), color: "bg-muted hover:bg-muted/80" },
   ];
 
