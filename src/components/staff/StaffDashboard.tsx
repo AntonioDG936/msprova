@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Trophy, History, CalendarDays, Apple, Edit, Plus, Settings } from "lucide-react";
+import { Trophy, History, CalendarDays, Apple, Edit, Plus, Settings, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StaffMatchesView } from "./StaffMatchesView";
 import { SettingsDialog } from "./SettingsDialog";
 import { StaffClassifiche } from "./StaffClassifiche";
 import { MatchHistoryDialog } from "./MatchHistoryDialog";
+import { FinalPhasesView } from "./FinalPhasesView";
 
-type View = "home" | "matches" | "classifiche";
+type View = "home" | "matches" | "classifiche" | "final_phases";
 
 export const StaffDashboard = () => {
   const [view, setView] = useState<View>("home");
@@ -22,6 +23,10 @@ export const StaffDashboard = () => {
 
   if (view === "classifiche") {
     return <StaffClassifiche onBack={() => setView("home")} />;
+  }
+
+  if (view === "final_phases") {
+    return <FinalPhasesView onBack={() => setView("home")} />;
   }
 
   if (view === "matches") {
@@ -42,10 +47,10 @@ export const StaffDashboard = () => {
 
   const mainButtons = [
     { icon: Trophy, label: "Classifiche", onClick: () => setView("classifiche"), color: "bg-primary hover:bg-primary/90" },
+    { icon: Award, label: "Fasi Finali", onClick: () => setView("final_phases"), color: "bg-secondary hover:bg-secondary/90" },
     { icon: CalendarDays, label: "Calendario", onClick: handleAppleCalendar, color: "bg-primary hover:bg-primary/90" },
     { icon: History, label: "Storico Partite", onClick: () => setIsHistoryOpen(true), color: "bg-primary hover:bg-primary/90" },
     { icon: Edit, label: "Gestisci Partite", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
-    { icon: Plus, label: "Aggiungi Partita", onClick: () => setView("matches"), color: "bg-secondary hover:bg-secondary/90" },
     { icon: Settings, label: "Impostazioni", onClick: () => setIsSettingsOpen(true), color: "bg-muted hover:bg-muted/80" },
   ];
 
