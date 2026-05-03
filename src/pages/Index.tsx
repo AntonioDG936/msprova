@@ -113,17 +113,37 @@ const Index = () => {
   const handleLogin = async () => {
     if (!firstName.trim() || !lastName.trim() || !category) return;
     const deviceId = getDeviceId();
+    const fn = firstName.trim();
+    const ln = lastName.trim();
 
-    await supabase.from("sessions").insert({
-      session_type: "athlete",
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      category,
-      device_id: deviceId,
-      is_active: true,
-    });
+    // Riutilizza utenza esistente con stesso nome/cognome/categoria
+    const { data: existing } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("session_type", "athlete")
+      .ilike("first_name", fn)
+      .ilike("last_name", ln)
+      .eq("category", category)
+      .limit(1)
+      .maybeSingle();
 
-    setSession({ first_name: firstName.trim(), last_name: lastName.trim(), category });
+    if (existing) {
+      await supabase
+        .from("sessions")
+        .update({ device_id: deviceId, is_active: true })
+        .eq("id", existing.id);
+    } else {
+      await supabase.from("sessions").insert({
+        session_type: "athlete",
+        first_name: fn,
+        last_name: ln,
+        category,
+        device_id: deviceId,
+        is_active: true,
+      });
+    }
+
+    setSession({ first_name: fn, last_name: ln, category });
     setViewCategory(category);
   };
 
