@@ -101,7 +101,8 @@ const CategoriesTab = () => {
 
   const updateDefaults = async (id: string, field: "default_period_duration" | "default_total_periods", value: number) => {
     if (!value || value < 1) return;
-    const { error } = await supabase.from("categories").update({ [field]: value }).eq("id", id);
+    const payload: any = { [field]: value };
+    const { error } = await supabase.from("categories").update(payload).eq("id", id);
     if (error) { toast.error("Errore"); return; }
     toast.success("Default aggiornati");
     queryClient.invalidateQueries({ queryKey: ["categories"] });
