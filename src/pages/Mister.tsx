@@ -16,7 +16,7 @@ type View = "matches" | "classifiche" | "storico" | "other_teams";
 
 const MisterPage = () => {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<{ first_name: string; last_name: string; category: string | null } | null>(null);
+  const [session, setSession] = useState<{ id?: string; first_name: string; last_name: string; category: string | null } | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -43,7 +43,14 @@ const MisterPage = () => {
         .maybeSingle();
 
       if (data) {
-        setSession({ first_name: data.first_name, last_name: data.last_name, category: data.category });
+        // Recupera mister.id per filtrare partite assegnate
+        const { data: m } = await supabase
+          .from("misters")
+          .select("id")
+          .ilike("first_name", data.first_name)
+          .ilike("last_name", data.last_name)
+          .maybeSingle();
+        setSession({ id: m?.id, first_name: data.first_name, last_name: data.last_name, category: data.category });
         setViewCategory(data.category ? data.category.split(",")[0].trim() : null);
       }
       setLoading(false);
@@ -136,7 +143,7 @@ const MisterPage = () => {
       is_active: true,
     });
 
-    setSession({ first_name: mister.first_name, last_name: mister.last_name, category: mister.category });
+    setSession({ id: mister.id, first_name: mister.first_name, last_name: mister.last_name, category: mister.category });
     setViewCategory(mister.category ? mister.category.split(",")[0].trim() : null);
   };
 
