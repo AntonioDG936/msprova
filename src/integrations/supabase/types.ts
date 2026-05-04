@@ -253,8 +253,12 @@ export type Database = {
           current_period: number | null
           current_second: number | null
           field_id: string | null
+          final_phase_id: string | null
+          final_phase_round: string | null
+          final_phase_slot: number | null
           home_team: string | null
           id: string
+          is_final_phase: boolean
           is_interval: boolean | null
           is_other_teams: boolean
           match_date: string
@@ -262,7 +266,7 @@ export type Database = {
           match_time: string
           mister_id: string | null
           notes: string | null
-          opponent: string
+          opponent: string | null
           period_duration: number | null
           score_away: number | null
           score_home: number | null
@@ -278,8 +282,12 @@ export type Database = {
           current_period?: number | null
           current_second?: number | null
           field_id?: string | null
+          final_phase_id?: string | null
+          final_phase_round?: string | null
+          final_phase_slot?: number | null
           home_team?: string | null
           id?: string
+          is_final_phase?: boolean
           is_interval?: boolean | null
           is_other_teams?: boolean
           match_date: string
@@ -287,7 +295,7 @@ export type Database = {
           match_time: string
           mister_id?: string | null
           notes?: string | null
-          opponent: string
+          opponent?: string | null
           period_duration?: number | null
           score_away?: number | null
           score_home?: number | null
@@ -303,8 +311,12 @@ export type Database = {
           current_period?: number | null
           current_second?: number | null
           field_id?: string | null
+          final_phase_id?: string | null
+          final_phase_round?: string | null
+          final_phase_slot?: number | null
           home_team?: string | null
           id?: string
+          is_final_phase?: boolean
           is_interval?: boolean | null
           is_other_teams?: boolean
           match_date?: string
@@ -312,7 +324,7 @@ export type Database = {
           match_time?: string
           mister_id?: string | null
           notes?: string | null
-          opponent?: string
+          opponent?: string | null
           period_duration?: number | null
           score_away?: number | null
           score_home?: number | null
@@ -334,6 +346,13 @@ export type Database = {
             columns: ["field_id"]
             isOneToOne: false
             referencedRelation: "fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_final_phase_id_fkey"
+            columns: ["final_phase_id"]
+            isOneToOne: false
+            referencedRelation: "final_phases"
             referencedColumns: ["id"]
           },
           {
