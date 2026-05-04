@@ -16,6 +16,7 @@ interface Props {
 }
 
 const MODES = [
+  { value: "round_of_16", label: "Ottavi (16 squadre)", slots: 16 },
   { value: "quarters", label: "Quarti (8 squadre)", slots: 8 },
   { value: "semis", label: "Semifinali (4 squadre)", slots: 4 },
   { value: "final", label: "Solo Finale (2 squadre)", slots: 2 },
@@ -25,7 +26,7 @@ export const FinalPhaseWizard = ({ open, onOpenChange }: Props) => {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [mode, setMode] = useState<"quarters" | "semis" | "final">("quarters");
+  const [mode, setMode] = useState<"round_of_16" | "quarters" | "semis" | "final">("quarters");
   const [periodDuration, setPeriodDuration] = useState(25);
   const [totalPeriods, setTotalPeriods] = useState(2);
   const [hasTriangolare, setHasTriangolare] = useState(false);
@@ -74,7 +75,7 @@ export const FinalPhaseWizard = ({ open, onOpenChange }: Props) => {
   const removeTeam = (i: number) => setTeams(teams.filter((_, idx) => idx !== i));
 
   const reset = () => {
-    setName(""); setCategoryId(""); setMode("quarters");
+    setName(""); setCategoryId(""); setMode("round_of_16");
     setPeriodDuration(25); setTotalPeriods(2); setHasTriangolare(false);
     setTeams([]); setNewTeam("");
   };
@@ -86,7 +87,17 @@ export const FinalPhaseWizard = ({ open, onOpenChange }: Props) => {
 
     const rounds: { round: string; matches: { team_home: string | null; team_away: string | null; slot: number }[] }[] = [];
 
-    if (mode === "quarters") {
+    if (mode === "round_of_16") {
+      rounds.push({
+        round: "round_of_16",
+        matches: Array.from({ length: 8 }, (_, i) => ({
+          team_home: padded[i * 2], team_away: padded[i * 2 + 1], slot: i,
+        })),
+      });
+      rounds.push({ round: "quarters", matches: Array.from({ length: 4 }, (_, i) => ({ team_home: null, team_away: null, slot: i })) });
+      rounds.push({ round: "semis", matches: [{ team_home: null, team_away: null, slot: 0 }, { team_home: null, team_away: null, slot: 1 }] });
+      rounds.push({ round: "final", matches: [{ team_home: null, team_away: null, slot: 0 }] });
+    } else if (mode === "quarters") {
       rounds.push({
         round: "quarters",
         matches: Array.from({ length: 4 }, (_, i) => ({
