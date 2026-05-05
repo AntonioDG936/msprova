@@ -11,6 +11,7 @@ import { getDeviceId } from "@/lib/deviceId";
 import { toast } from "sonner";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
+import { BracketButton } from "@/components/BracketDialog";
 
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
