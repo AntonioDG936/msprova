@@ -116,36 +116,52 @@ const Index = () => {
     const deviceId = getDeviceId();
     const fn = firstName.trim();
     const ln = lastName.trim();
+    const selectedCategory = category.trim();
 
     // Riutilizza utenza esistente con stesso nome/cognome/categoria
-    const { data: existing } = await supabase
+    const { data: existingSessions } = await supabase
       .from("sessions")
-      .select("*")
+      .select("id")
       .eq("session_type", "athlete")
       .ilike("first_name", fn)
       .ilike("last_name", ln)
-      .eq("category", category)
-      .limit(1)
-      .maybeSingle();
+      .ilike("category", selectedCategory)
+      .order("is_active", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    const [existing, ...duplicates] = existingSessions ?? [];
 
     if (existing) {
       await supabase
         .from("sessions")
-        .update({ device_id: deviceId, is_active: true })
+        .update({
+          first_name: fn,
+          last_name: ln,
+          category: selectedCategory,
+          device_id: deviceId,
+          is_active: true,
+        })
         .eq("id", existing.id);
+
+      if (duplicates.length > 0) {
+        await supabase
+          .from("sessions")
+          .update({ is_active: false })
+          .in("id", duplicates.map((item) => item.id));
+      }
     } else {
       await supabase.from("sessions").insert({
         session_type: "athlete",
         first_name: fn,
         last_name: ln,
-        category,
+        category: selectedCategory,
         device_id: deviceId,
         is_active: true,
       });
     }
 
-    setSession({ first_name: fn, last_name: ln, category });
-    setViewCategory(category);
+    setSession({ first_name: fn, last_name: ln, category: selectedCategory });
+    setViewCategory(selectedCategory);
   };
 
   if (loading) {
