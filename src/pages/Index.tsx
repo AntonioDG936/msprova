@@ -11,6 +11,7 @@ import { Loader2, Trophy, History, Users2 } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
+import { BracketButton } from "@/components/BracketDialog";
 
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
@@ -222,6 +223,7 @@ const Index = () => {
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico
           </Button>
+          <BracketButton categoryName={viewCategory} />
           <Button
             onClick={() => setCurrentView(currentView === "other_teams" ? "matches" : "other_teams")}
             variant={currentView === "other_teams" ? "default" : "outline"}
