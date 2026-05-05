@@ -11,6 +11,7 @@ import { Loader2, Trophy, History, Users2 } from "lucide-react";
 import { getDeviceId } from "@/lib/deviceId";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
+import { BracketButton } from "@/components/BracketDialog";
 
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
