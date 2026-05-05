@@ -218,8 +218,8 @@ const MisterPage = () => {
           <Button onClick={() => setCurrentView("storico")} variant="outline" size="sm" className="text-foreground border-primary/30">
             <History className="w-4 h-4 mr-1" /> Storico
           </Button>
+          <BracketButton categoryName={viewCategory} />
           <Button
-            onClick={() => setCurrentView(currentView === "other_teams" ? "matches" : "other_teams")}
             variant={currentView === "other_teams" ? "default" : "outline"}
             size="sm"
             className={currentView === "other_teams" ? "" : "text-foreground border-primary/30"}
