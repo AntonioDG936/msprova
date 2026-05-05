@@ -225,6 +225,7 @@ const Index = () => {
           </Button>
           <BracketButton categoryName={viewCategory} />
           <Button
+            onClick={() => setCurrentView(currentView === "other_teams" ? "matches" : "other_teams")}
             variant={currentView === "other_teams" ? "default" : "outline"}
             size="sm"
             className={currentView === "other_teams" ? "" : "text-foreground border-primary/30"}
