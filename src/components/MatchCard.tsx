@@ -13,10 +13,13 @@ interface MatchCardProps {
     opponent: string;
     home_team?: string | null;
     is_other_teams?: boolean | null;
+    napoli_is_home?: boolean | null;
     match_date: string;
     match_time: string;
     score_home: number | null;
     score_away: number | null;
+    score_home_pen?: number | null;
+    score_away_pen?: number | null;
     notes: string | null;
     status?: string;
     current_minute?: number | null;
