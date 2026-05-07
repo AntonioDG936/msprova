@@ -326,6 +326,7 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       opponent: matchOpponent,
       home_team: matchHomeTeam,
       is_other_teams: isOther,
+      napoli_is_home: isOther ? null : isNapoli(homeTeam),
       field_id: fieldId || null,
       match_date: matchDate,
       match_time: matchTime,
@@ -334,6 +335,8 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       total_periods: totalPeriods,
       score_home: scoreHome !== "" ? parseInt(scoreHome) : null,
       score_away: scoreAway !== "" ? parseInt(scoreAway) : null,
+      score_home_pen: scoreHomePen !== "" ? parseInt(scoreHomePen) : null,
+      score_away_pen: scoreAwayPen !== "" ? parseInt(scoreAwayPen) : null,
       is_final_phase: true,
       final_phase_id: phase.id,
       final_phase_round: phaseMatch.round,
@@ -350,12 +353,17 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       matchId = data.id;
     }
 
-    // Aggiorna phase_match: squadre + winner se score impostato
+    // Vincitore: regular score, in caso di pareggio usa rigori
     let winner: string | null = phaseMatch.winner;
     if (scoreHome !== "" && scoreAway !== "") {
       const sh = parseInt(scoreHome), sa = parseInt(scoreAway);
       if (sh > sa) winner = homeTeam.trim();
       else if (sa > sh) winner = opponent.trim();
+      else if (scoreHomePen !== "" && scoreAwayPen !== "") {
+        const ph = parseInt(scoreHomePen), pa = parseInt(scoreAwayPen);
+        if (ph > pa) winner = homeTeam.trim();
+        else if (pa > ph) winner = opponent.trim();
+      }
     }
 
     await supabase.from("final_phase_matches").update({
