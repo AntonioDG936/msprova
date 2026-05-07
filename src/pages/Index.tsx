@@ -12,6 +12,7 @@ import { getDeviceId } from "@/lib/deviceId";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
 import { BracketButton } from "@/components/BracketDialog";
+import logoNapoli from "@/assets/logo-napoli.png";
 
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
