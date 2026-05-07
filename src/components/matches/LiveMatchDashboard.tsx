@@ -289,7 +289,7 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
 
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-foreground mb-2">
-                    {match.opponent}
+                    {awayLabel}
                   </h3>
                   <div className="flex items-center justify-center gap-2">
                     <Button onClick={() => decrementScore("away")} variant="outline" size="icon" className="h-8 w-8">
