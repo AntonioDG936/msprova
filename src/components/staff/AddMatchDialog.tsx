@@ -114,6 +114,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
       opponent: opponent.trim(),
       home_team: isOtherTeams ? homeTeam.trim() : null,
       is_other_teams: isOtherTeams,
+      napoli_is_home: isOtherTeams ? null : napoliIsHome,
       field_id: fieldId || null,
       match_date: matchDate,
       match_time: matchTime,
