@@ -99,7 +99,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3 gap-2">
             <h3 className="font-bold text-base text-foreground flex-1">
-              {homeName} vs {match.opponent}
+              {homeName} vs {awayName}
             </h3>
             {showCategory && match.category && (
               <span className="text-sm font-bold text-accent ml-2 whitespace-nowrap">
