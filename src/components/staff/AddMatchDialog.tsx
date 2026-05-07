@@ -29,6 +29,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
   const [notes, setNotes] = useState("");
   const [periodDuration, setPeriodDuration] = useState<number | "">("");
   const [totalPeriods, setTotalPeriods] = useState<number | "">("");
+  const [napoliIsHome, setNapoliIsHome] = useState(true);
 
   useEffect(() => {
     if (open) setIsOtherTeams(defaultIsOtherTeams);
