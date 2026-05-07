@@ -206,11 +206,14 @@ const MisterPage = () => {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
-          <p className="text-accent text-sm">
-            Mister {session.first_name} {session.last_name} — Categoria {viewCategory}
-          </p>
+        <div className="mb-6 flex items-center gap-3">
+          <img src={logoNapoli} alt="T.D.G Napoli Campania" className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
+            <p className="text-accent text-sm">
+              Mister {session.first_name} {session.last_name} — Categoria {viewCategory}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
