@@ -87,6 +87,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
     setCategoryId(""); setMisterId(""); setOpponent(""); setHomeTeam("");
     setFieldId(""); setMatchDate(""); setMatchTime(""); setNotes("");
     setPeriodDuration(""); setTotalPeriods(""); setIsOtherTeams(false);
+    setNapoliIsHome(true);
   };
 
   const handleSubmit = async () => {
