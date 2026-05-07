@@ -159,21 +159,27 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
           {events.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-foreground/80 mb-2">Eventi Partita</h4>
-              <div className="space-y-2">
-                {events.map((event) => (
-                  <div key={event.id} className="flex items-center gap-3 bg-muted/30 rounded-lg p-2 text-sm">
-                    <span className="text-primary font-mono font-bold min-w-[50px]">{formatEventTime(event)}</span>
-                    <span className="text-lg">{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
-                    <div className="flex-1">
-                      <span className="text-foreground font-medium">
-                        {event.team === "home" ? homeName : match.opponent}
-                      </span>
-                      {event.player_name && (
-                        <span className="text-muted-foreground ml-2">— {event.player_name}</span>
-                      )}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground text-center mb-1">{homeName}</p>
+                  {events.filter(e => (napoliAway ? e.team === "away" : e.team === "home")).map(event => (
+                    <div key={event.id} className="flex items-center gap-2 bg-muted/30 rounded p-2 text-sm">
+                      <span className="text-primary font-mono font-bold text-xs">{formatEventTime(event)}</span>
+                      <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
+                      {event.player_name && <span className="text-foreground/80 text-xs truncate">{event.player_name}</span>}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground text-center mb-1">{awayName}</p>
+                  {events.filter(e => (napoliAway ? e.team === "home" : e.team === "away")).map(event => (
+                    <div key={event.id} className="flex items-center justify-end gap-2 bg-muted/30 rounded p-2 text-sm">
+                      {event.player_name && <span className="text-foreground/80 text-xs truncate">{event.player_name}</span>}
+                      <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
+                      <span className="text-primary font-mono font-bold text-xs">{formatEventTime(event)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
