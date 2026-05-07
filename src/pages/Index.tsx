@@ -178,6 +178,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader className="text-center space-y-2">
+            <img src={logoNapoli} alt="T.D.G Napoli Campania" className="w-24 h-24 mx-auto" />
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
               Torneo di Sibari
             </CardTitle>
