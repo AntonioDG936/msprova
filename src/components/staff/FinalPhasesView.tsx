@@ -482,6 +482,19 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
             </div>
           </div>
 
+          {scoreHome !== "" && scoreAway !== "" && parseInt(scoreHome) === parseInt(scoreAway) && (
+            <div className="grid grid-cols-2 gap-3 border-t border-border/30 pt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Rigori {homeTeam || "A"}</Label>
+                <Input type="number" value={scoreHomePen} onChange={(e) => setScoreHomePen(e.target.value)} className="bg-muted/50" placeholder="Pareggio: inserisci rigori" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Rigori {opponent || "B"}</Label>
+                <Input type="number" value={scoreAwayPen} onChange={(e) => setScoreAwayPen(e.target.value)} className="bg-muted/50" />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1">
             <Label className="text-xs">Note</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="bg-muted/50" />
