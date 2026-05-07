@@ -109,6 +109,6 @@ export function getMapsEmbedUrl(url: string | null | undefined): string | null {
     return `https://www.google.com/maps?q=${lat},${lng}&hl=it&z=16&output=embed`;
   }
 
-  // Generic: use the URL itself as query (works for short links too via redirect)
-  return `https://www.google.com/maps?q=${encodeURIComponent(trimmed)}&hl=it&z=16&output=embed`;
+  // Non riusciamo a ricavare un embed affidabile: niente anteprima
+  return null;
 }
