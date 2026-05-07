@@ -166,15 +166,27 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
           </div>
 
           {!isOtherTeams && (
-            <div className="space-y-2">
-              <Label className="text-foreground">Mister</Label>
-              <Select value={misterId} onValueChange={setMisterId}>
-                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
-                <SelectContent>
-                  {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label className="text-foreground">Mister</Label>
+                <Select value={misterId} onValueChange={setMisterId}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                  <SelectContent>
+                    {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground">Napoli Campania gioca</Label>
+                <Select value={napoliIsHome ? "home" : "away"} onValueChange={(v) => setNapoliIsHome(v === "home")}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="home">In casa</SelectItem>
+                    <SelectItem value="away">In trasferta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {isOtherTeams && (
