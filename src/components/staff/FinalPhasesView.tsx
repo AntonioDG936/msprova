@@ -286,11 +286,19 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
   const [notes, setNotes] = useState(m?.notes || "");
   const [scoreHome, setScoreHome] = useState(m?.score_home?.toString() ?? "");
   const [scoreAway, setScoreAway] = useState(m?.score_away?.toString() ?? "");
+  const [scoreHomePen, setScoreHomePen] = useState(m?.score_home_pen?.toString() ?? "");
+  const [scoreAwayPen, setScoreAwayPen] = useState(m?.score_away_pen?.toString() ?? "");
   const [periodDuration, setPeriodDuration] = useState<number>(m?.period_duration ?? phase?.period_duration ?? 25);
   const [totalPeriods, setTotalPeriods] = useState<number>(m?.total_periods ?? phase?.total_periods ?? 2);
 
   const { data: fields = [] } = useQuery({ queryKey: ["fields"], queryFn: async () => (await supabase.from("fields").select("*").order("name")).data || [] });
   const { data: misters = [] } = useQuery({ queryKey: ["misters"], queryFn: async () => (await supabase.from("misters").select("*").order("last_name")).data || [] });
+  const { data: phaseTeams = [] } = useQuery({
+    queryKey: ["phase-teams", phase?.id],
+    queryFn: async () => (await supabase.from("final_phase_teams").select("team_name").eq("phase_id", phase.id)).data || [],
+    enabled: !!phase?.id,
+  });
+  const teamOptions: string[] = phaseTeams.map((t: any) => t.team_name);
 
   const isNapoli = (n: string) => n.toLowerCase().includes("napoli campania");
 
