@@ -41,7 +41,9 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
   const periodDuration = match.period_duration ?? 25;
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
+  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
 
   const live = useLiveTime(match);
 
