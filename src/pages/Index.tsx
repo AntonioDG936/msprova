@@ -12,6 +12,7 @@ import { getDeviceId } from "@/lib/deviceId";
 import { StandingsView } from "@/components/StandingsView";
 import { MatchHistoryView } from "@/components/MatchHistoryView";
 import { BracketButton } from "@/components/BracketDialog";
+import logoNapoli from "@/assets/logo-napoli.png";
 
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
@@ -177,6 +178,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader className="text-center space-y-2">
+            <img src={logoNapoli} alt="T.D.G Napoli Campania" className="w-24 h-24 mx-auto" />
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
               Torneo di Sibari
             </CardTitle>
@@ -224,11 +226,14 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
-          <p className="text-accent text-sm">
-            {session.first_name} {session.last_name} — Categoria {viewCategory}
-          </p>
+        <div className="mb-6 flex items-center gap-3">
+          <img src={logoNapoli} alt="T.D.G Napoli Campania" className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Torneo di Sibari</h1>
+            <p className="text-accent text-sm">
+              {session.first_name} {session.last_name} — Categoria {viewCategory}
+            </p>
+          </div>
         </div>
 
         {/* Navigation */}

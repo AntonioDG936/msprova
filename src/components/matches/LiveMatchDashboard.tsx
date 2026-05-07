@@ -252,6 +252,9 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
   };
 
   const categoryName = match.category?.name || "";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeLabel = napoliAway ? match.opponent : `Napoli Campania ${categoryName}`;
+  const awayLabel = napoliAway ? `Napoli Campania ${categoryName}` : match.opponent;
 
   return (
     <>
@@ -267,7 +270,7 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
               <div className="flex items-center justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-foreground mb-2">
-                    Napoli Campania {categoryName}
+                    {homeLabel}
                   </h3>
                   <div className="flex items-center justify-center gap-2">
                     <Button onClick={() => decrementScore("home")} variant="outline" size="icon" className="h-8 w-8">
@@ -286,7 +289,7 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
 
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-foreground mb-2">
-                    {match.opponent}
+                    {awayLabel}
                   </h3>
                   <div className="flex items-center justify-center gap-2">
                     <Button onClick={() => decrementScore("away")} variant="outline" size="icon" className="h-8 w-8">

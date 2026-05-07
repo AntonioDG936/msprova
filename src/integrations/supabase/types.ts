@@ -265,11 +265,14 @@ export type Database = {
           match_start_time: string | null
           match_time: string
           mister_id: string | null
+          napoli_is_home: boolean | null
           notes: string | null
           opponent: string | null
           period_duration: number | null
           score_away: number | null
+          score_away_pen: number | null
           score_home: number | null
+          score_home_pen: number | null
           status: string
           stoppage_minutes: number | null
           total_periods: number | null
@@ -294,11 +297,14 @@ export type Database = {
           match_start_time?: string | null
           match_time: string
           mister_id?: string | null
+          napoli_is_home?: boolean | null
           notes?: string | null
           opponent?: string | null
           period_duration?: number | null
           score_away?: number | null
+          score_away_pen?: number | null
           score_home?: number | null
+          score_home_pen?: number | null
           status?: string
           stoppage_minutes?: number | null
           total_periods?: number | null
@@ -323,11 +329,14 @@ export type Database = {
           match_start_time?: string | null
           match_time?: string
           mister_id?: string | null
+          napoli_is_home?: boolean | null
           notes?: string | null
           opponent?: string | null
           period_duration?: number | null
           score_away?: number | null
+          score_away_pen?: number | null
           score_home?: number | null
+          score_home_pen?: number | null
           status?: string
           stoppage_minutes?: number | null
           total_periods?: number | null

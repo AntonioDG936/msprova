@@ -124,6 +124,21 @@ const PhaseView = ({ phaseId, onBack }: { phaseId: string; onBack: () => void })
     },
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel(`phase-rt-${phaseId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phase_matches', filter: `phase_id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase-matches", phaseId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phases', filter: `id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase", phaseId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `final_phase_id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase-matches", phaseId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [phaseId, qc]);
   // Quando una finale viene completata, mostra celebrazione fullscreen una volta
   useEffect(() => {
     if (phase?.winner_team && phase?.status === "completed") {
@@ -286,11 +301,19 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
   const [notes, setNotes] = useState(m?.notes || "");
   const [scoreHome, setScoreHome] = useState(m?.score_home?.toString() ?? "");
   const [scoreAway, setScoreAway] = useState(m?.score_away?.toString() ?? "");
+  const [scoreHomePen, setScoreHomePen] = useState(m?.score_home_pen?.toString() ?? "");
+  const [scoreAwayPen, setScoreAwayPen] = useState(m?.score_away_pen?.toString() ?? "");
   const [periodDuration, setPeriodDuration] = useState<number>(m?.period_duration ?? phase?.period_duration ?? 25);
   const [totalPeriods, setTotalPeriods] = useState<number>(m?.total_periods ?? phase?.total_periods ?? 2);
 
   const { data: fields = [] } = useQuery({ queryKey: ["fields"], queryFn: async () => (await supabase.from("fields").select("*").order("name")).data || [] });
   const { data: misters = [] } = useQuery({ queryKey: ["misters"], queryFn: async () => (await supabase.from("misters").select("*").order("last_name")).data || [] });
+  const { data: phaseTeams = [] } = useQuery({
+    queryKey: ["phase-teams", phase?.id],
+    queryFn: async () => (await supabase.from("final_phase_teams").select("team_name").eq("phase_id", phase.id)).data || [],
+    enabled: !!phase?.id,
+  });
+  const teamOptions: string[] = phaseTeams.map((t: any) => t.team_name);
 
   const isNapoli = (n: string) => n.toLowerCase().includes("napoli campania");
 
@@ -318,6 +341,7 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       opponent: matchOpponent,
       home_team: matchHomeTeam,
       is_other_teams: isOther,
+      napoli_is_home: isOther ? null : isNapoli(homeTeam),
       field_id: fieldId || null,
       match_date: matchDate,
       match_time: matchTime,
@@ -326,6 +350,8 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       total_periods: totalPeriods,
       score_home: scoreHome !== "" ? parseInt(scoreHome) : null,
       score_away: scoreAway !== "" ? parseInt(scoreAway) : null,
+      score_home_pen: scoreHomePen !== "" ? parseInt(scoreHomePen) : null,
+      score_away_pen: scoreAwayPen !== "" ? parseInt(scoreAwayPen) : null,
       is_final_phase: true,
       final_phase_id: phase.id,
       final_phase_round: phaseMatch.round,
@@ -342,12 +368,17 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
       matchId = data.id;
     }
 
-    // Aggiorna phase_match: squadre + winner se score impostato
+    // Vincitore: regular score, in caso di pareggio usa rigori
     let winner: string | null = phaseMatch.winner;
     if (scoreHome !== "" && scoreAway !== "") {
       const sh = parseInt(scoreHome), sa = parseInt(scoreAway);
       if (sh > sa) winner = homeTeam.trim();
       else if (sa > sh) winner = opponent.trim();
+      else if (scoreHomePen !== "" && scoreAwayPen !== "") {
+        const ph = parseInt(scoreHomePen), pa = parseInt(scoreAwayPen);
+        if (ph > pa) winner = homeTeam.trim();
+        else if (pa > ph) winner = opponent.trim();
+      }
     }
 
     await supabase.from("final_phase_matches").update({
@@ -399,11 +430,21 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Squadra A *</Label>
-              <Input value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} placeholder="Es. Napoli Campania" className="bg-muted/50" />
+              <Select value={homeTeam} onValueChange={setHomeTeam}>
+                <SelectTrigger className="bg-muted/50"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>
+                  {teamOptions.filter(t => t !== opponent).map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Squadra B *</Label>
-              <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50" />
+              <Select value={opponent} onValueChange={setOpponent}>
+                <SelectTrigger className="bg-muted/50"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>
+                  {teamOptions.filter(t => t !== homeTeam).map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -455,6 +496,19 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
               <Input type="number" value={scoreAway} onChange={(e) => setScoreAway(e.target.value)} className="bg-muted/50" />
             </div>
           </div>
+
+          {scoreHome !== "" && scoreAway !== "" && parseInt(scoreHome) === parseInt(scoreAway) && (
+            <div className="grid grid-cols-2 gap-3 border-t border-border/30 pt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Rigori {homeTeam || "A"}</Label>
+                <Input type="number" value={scoreHomePen} onChange={(e) => setScoreHomePen(e.target.value)} className="bg-muted/50" placeholder="Pareggio: inserisci rigori" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Rigori {opponent || "B"}</Label>
+                <Input type="number" value={scoreAwayPen} onChange={(e) => setScoreAwayPen(e.target.value)} className="bg-muted/50" />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label className="text-xs">Note</Label>

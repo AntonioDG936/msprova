@@ -12,10 +12,13 @@ interface MatchDetailDialogProps {
     opponent: string;
     home_team?: string | null;
     is_other_teams?: boolean | null;
+    napoli_is_home?: boolean | null;
     match_date: string;
     match_time: string;
     score_home: number | null;
     score_away: number | null;
+    score_home_pen?: number | null;
+    score_away_pen?: number | null;
     notes: string | null;
     status?: string;
     current_minute?: number | null;
@@ -38,7 +41,9 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
   const periodDuration = match.period_duration ?? 25;
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
+  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
 
   const live = useLiveTime(match);
 
@@ -125,9 +130,14 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                     {hasResult ? `${match.score_home} - ${match.score_away}` : "- -"}
                   </span>
                 </div>
+                {match.score_home_pen != null && match.score_away_pen != null && (
+                  <div className="text-sm text-muted-foreground mt-1 font-semibold">
+                    Rigori: {match.score_home_pen} - {match.score_away_pen}
+                  </div>
+                )}
               </div>
               <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-foreground">{match.opponent}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-foreground">{awayName}</h3>
               </div>
             </div>
 
@@ -149,21 +159,27 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
           {events.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-foreground/80 mb-2">Eventi Partita</h4>
-              <div className="space-y-2">
-                {events.map((event) => (
-                  <div key={event.id} className="flex items-center gap-3 bg-muted/30 rounded-lg p-2 text-sm">
-                    <span className="text-primary font-mono font-bold min-w-[50px]">{formatEventTime(event)}</span>
-                    <span className="text-lg">{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
-                    <div className="flex-1">
-                      <span className="text-foreground font-medium">
-                        {event.team === "home" ? homeName : match.opponent}
-                      </span>
-                      {event.player_name && (
-                        <span className="text-muted-foreground ml-2">— {event.player_name}</span>
-                      )}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground text-center mb-1">{homeName}</p>
+                  {events.filter(e => (napoliAway ? e.team === "away" : e.team === "home")).map(event => (
+                    <div key={event.id} className="flex items-center gap-2 bg-muted/30 rounded p-2 text-sm">
+                      <span className="text-primary font-mono font-bold text-xs">{formatEventTime(event)}</span>
+                      <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
+                      {event.player_name && <span className="text-foreground/80 text-xs truncate">{event.player_name}</span>}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground text-center mb-1">{awayName}</p>
+                  {events.filter(e => (napoliAway ? e.team === "home" : e.team === "away")).map(event => (
+                    <div key={event.id} className="flex items-center justify-end gap-2 bg-muted/30 rounded p-2 text-sm">
+                      {event.player_name && <span className="text-foreground/80 text-xs truncate">{event.player_name}</span>}
+                      <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
+                      <span className="text-primary font-mono font-bold text-xs">{formatEventTime(event)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

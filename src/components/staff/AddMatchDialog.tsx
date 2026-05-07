@@ -29,6 +29,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
   const [notes, setNotes] = useState("");
   const [periodDuration, setPeriodDuration] = useState<number | "">("");
   const [totalPeriods, setTotalPeriods] = useState<number | "">("");
+  const [napoliIsHome, setNapoliIsHome] = useState(true);
 
   useEffect(() => {
     if (open) setIsOtherTeams(defaultIsOtherTeams);
@@ -86,6 +87,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
     setCategoryId(""); setMisterId(""); setOpponent(""); setHomeTeam("");
     setFieldId(""); setMatchDate(""); setMatchTime(""); setNotes("");
     setPeriodDuration(""); setTotalPeriods(""); setIsOtherTeams(false);
+    setNapoliIsHome(true);
   };
 
   const handleSubmit = async () => {
@@ -112,6 +114,7 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
       opponent: opponent.trim(),
       home_team: isOtherTeams ? homeTeam.trim() : null,
       is_other_teams: isOtherTeams,
+      napoli_is_home: isOtherTeams ? null : napoliIsHome,
       field_id: fieldId || null,
       match_date: matchDate,
       match_time: matchTime,
@@ -163,15 +166,27 @@ export const AddMatchDialog = ({ open, onOpenChange, defaultIsOtherTeams = false
           </div>
 
           {!isOtherTeams && (
-            <div className="space-y-2">
-              <Label className="text-foreground">Mister</Label>
-              <Select value={misterId} onValueChange={setMisterId}>
-                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
-                <SelectContent>
-                  {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label className="text-foreground">Mister</Label>
+                <Select value={misterId} onValueChange={setMisterId}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                  <SelectContent>
+                    {misters.map((m) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground">Napoli Campania gioca</Label>
+                <Select value={napoliIsHome ? "home" : "away"} onValueChange={(v) => setNapoliIsHome(v === "home")}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="home">In casa</SelectItem>
+                    <SelectItem value="away">In trasferta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {isOtherTeams && (

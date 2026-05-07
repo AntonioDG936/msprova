@@ -13,10 +13,13 @@ interface MatchCardProps {
     opponent: string;
     home_team?: string | null;
     is_other_teams?: boolean | null;
+    napoli_is_home?: boolean | null;
     match_date: string;
     match_time: string;
     score_home: number | null;
     score_away: number | null;
+    score_home_pen?: number | null;
+    score_away_pen?: number | null;
     notes: string | null;
     status?: string;
     current_minute?: number | null;
@@ -60,7 +63,9 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
   // Tick ogni secondo: usa l'hook che calcola da match_start_time
   const live = useLiveTime(match);
 
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
+  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
 
   const renderLiveTime = () => {
     if (match.is_interval) return <span>INTERVALLO</span>;
@@ -94,7 +99,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3 gap-2">
             <h3 className="font-bold text-base text-foreground flex-1">
-              {homeName} vs {match.opponent}
+              {homeName} vs {awayName}
             </h3>
             {showCategory && match.category && (
               <span className="text-sm font-bold text-accent ml-2 whitespace-nowrap">
@@ -113,6 +118,11 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
           {hasResult && (
             <div className="text-xl font-bold text-accent mb-2">
               {match.score_home} - {match.score_away}
+              {match.score_home_pen != null && match.score_away_pen != null && (
+                <span className="text-sm font-semibold ml-2 text-muted-foreground">
+                  (rig. {match.score_home_pen}-{match.score_away_pen})
+                </span>
+              )}
             </div>
           )}
 
