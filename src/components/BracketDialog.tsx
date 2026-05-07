@@ -15,6 +15,21 @@ const ROUND_ORDER = ["round_of_16", "quarters", "semis", "final"];
 
 export const BracketButton = ({ categoryName }: { categoryName?: string | null }) => {
   const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('bracket-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phases' }, () => {
+        qc.invalidateQueries({ queryKey: ["active-final-phases"] });
+        qc.invalidateQueries({ queryKey: ["final-phase-bracket"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phase_matches' }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase-bracket"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
 
   const { data: phases = [] } = useQuery({
     queryKey: ["active-final-phases", categoryName],
