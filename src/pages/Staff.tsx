@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Keypad } from "@/components/Keypad";
 import { toast } from "sonner";
 import { StaffDashboard } from "@/components/staff/StaffDashboard";
+import logoNapoli from "@/assets/logo-napoli.png";
 
 const STAFF_PIN = "0891";
 
