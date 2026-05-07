@@ -252,6 +252,9 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
   };
 
   const categoryName = match.category?.name || "";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeLabel = napoliAway ? match.opponent : `Napoli Campania ${categoryName}`;
+  const awayLabel = napoliAway ? `Napoli Campania ${categoryName}` : match.opponent;
 
   return (
     <>
