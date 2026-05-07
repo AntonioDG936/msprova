@@ -124,6 +124,21 @@ const PhaseView = ({ phaseId, onBack }: { phaseId: string; onBack: () => void })
     },
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel(`phase-rt-${phaseId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phase_matches', filter: `phase_id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase-matches", phaseId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'final_phases', filter: `id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase", phaseId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `final_phase_id=eq.${phaseId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["final-phase-matches", phaseId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [phaseId, qc]);
   // Quando una finale viene completata, mostra celebrazione fullscreen una volta
   useEffect(() => {
     if (phase?.winner_team && phase?.status === "completed") {
