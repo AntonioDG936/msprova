@@ -130,9 +130,14 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                     {hasResult ? `${match.score_home} - ${match.score_away}` : "- -"}
                   </span>
                 </div>
+                {match.score_home_pen != null && match.score_away_pen != null && (
+                  <div className="text-sm text-muted-foreground mt-1 font-semibold">
+                    Rigori: {match.score_home_pen} - {match.score_away_pen}
+                  </div>
+                )}
               </div>
               <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-foreground">{match.opponent}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-foreground">{awayName}</h3>
               </div>
             </div>
 
