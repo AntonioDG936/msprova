@@ -118,6 +118,11 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
           {hasResult && (
             <div className="text-xl font-bold text-accent mb-2">
               {match.score_home} - {match.score_away}
+              {match.score_home_pen != null && match.score_away_pen != null && (
+                <span className="text-sm font-semibold ml-2 text-muted-foreground">
+                  (rig. {match.score_home_pen}-{match.score_away_pen})
+                </span>
+              )}
             </div>
           )}
 
