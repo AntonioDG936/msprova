@@ -155,11 +155,27 @@ export const FinalPhaseWizard = ({ open, onOpenChange }: Props) => {
     const { error: e2 } = await supabase.from("final_phase_teams").insert(teamRows);
     if (e2) { toast.error("Errore squadre: " + e2.message); return; }
 
-    const matchRows = generateBracket(phase.id, teams);
-    const { error: e3 } = await supabase.from("final_phase_matches").insert(matchRows);
+    // Crea slot vuoti del bracket (senza partite reali)
+    const emptyMatches: any[] = [];
+    if (mode === "round_of_16") {
+      for (let i = 0; i < 8; i++) emptyMatches.push({ phase_id: phase.id, round: "round_of_16", slot: i });
+      for (let i = 0; i < 4; i++) emptyMatches.push({ phase_id: phase.id, round: "quarters", slot: i });
+      for (let i = 0; i < 2; i++) emptyMatches.push({ phase_id: phase.id, round: "semis", slot: i });
+      emptyMatches.push({ phase_id: phase.id, round: "final", slot: 0 });
+    } else if (mode === "quarters") {
+      for (let i = 0; i < 4; i++) emptyMatches.push({ phase_id: phase.id, round: "quarters", slot: i });
+      for (let i = 0; i < 2; i++) emptyMatches.push({ phase_id: phase.id, round: "semis", slot: i });
+      emptyMatches.push({ phase_id: phase.id, round: "final", slot: 0 });
+    } else if (mode === "semis") {
+      for (let i = 0; i < 2; i++) emptyMatches.push({ phase_id: phase.id, round: "semis", slot: i });
+      emptyMatches.push({ phase_id: phase.id, round: "final", slot: 0 });
+    } else {
+      emptyMatches.push({ phase_id: phase.id, round: "final", slot: 0 });
+    }
+    const { error: e3 } = await supabase.from("final_phase_matches").insert(emptyMatches);
     if (e3) { toast.error("Errore tabellone: " + e3.message); return; }
 
-    toast.success("Fase finale creata!");
+    toast.success("Fase finale creata! Ora crea le partite.");
     qc.invalidateQueries({ queryKey: ["final-phases"] });
     onOpenChange(false);
     reset();
