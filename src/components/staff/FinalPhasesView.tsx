@@ -415,11 +415,21 @@ const PhaseMatchEditor = ({ phaseMatch, phase, allPhaseMatches, open, onClose }:
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Squadra A *</Label>
-              <Input value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} placeholder="Es. Napoli Campania" className="bg-muted/50" />
+              <Select value={homeTeam} onValueChange={setHomeTeam}>
+                <SelectTrigger className="bg-muted/50"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>
+                  {teamOptions.filter(t => t !== opponent).map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Squadra B *</Label>
-              <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50" />
+              <Select value={opponent} onValueChange={setOpponent}>
+                <SelectTrigger className="bg-muted/50"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>
+                  {teamOptions.filter(t => t !== homeTeam).map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
