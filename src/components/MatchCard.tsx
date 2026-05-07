@@ -63,7 +63,9 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
   // Tick ogni secondo: usa l'hook che calcola da match_start_time
   const live = useLiveTime(match);
 
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : "Napoli Campania";
+  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
+  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
+  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
 
   const renderLiveTime = () => {
     if (match.is_interval) return <span>INTERVALLO</span>;
