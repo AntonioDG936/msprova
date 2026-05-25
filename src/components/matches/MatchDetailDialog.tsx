@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
-import { useLiveTime, getMapsEmbedUrl } from "@/lib/liveTimer";
+import { useLiveTime } from "@/lib/liveTimer";
+import { resolveField, GROUP_MAP } from "@/lib/fieldsRegistry";
 
 interface MatchDetailDialogProps {
   match: {
@@ -85,7 +86,9 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
     return `${cumMinute + 1}'`;
   };
 
-  const embedUrl = getMapsEmbedUrl(match.field?.google_maps_url);
+  const fieldInfo = resolveField(match.field?.name, match.field?.google_maps_url);
+  const mapImage = fieldInfo ? GROUP_MAP[fieldInfo.group] : null;
+  const openUrl = fieldInfo?.mapsUrl || match.field?.google_maps_url || "";
 
   const renderLiveTime = () => {
     if (match.is_interval) return <span>INTERVALLO</span>;
@@ -207,7 +210,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
             </div>
           )}
 
-          {/* Map Preview - SOLO dal link */}
+          {/* Map Preview */}
           {match.field && (
             <div>
               <h4 className="text-sm font-semibold text-foreground/80 mb-2 flex items-center gap-2">
@@ -215,27 +218,39 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                 Posizione
               </h4>
               <div className="bg-muted rounded-lg p-4 mb-2">
-                <p className="text-foreground font-medium mb-2">{match.field.name}</p>
-                {embedUrl && (
-                  <div className="rounded-lg overflow-hidden border border-border/50">
-                    <iframe
-                      title="Mappa campo"
-                      width="100%"
-                      height="300"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={embedUrl}
-                    />
+                <p className="text-foreground font-medium mb-2">
+                  {fieldInfo ? (
+                    <>
+                      <span className="text-accent font-bold">{fieldInfo.group}</span>
+                      <span className="mx-1">–</span>
+                      <span>{fieldInfo.code}</span>
+                    </>
+                  ) : (
+                    match.field.name
+                  )}
+                </p>
+                {mapImage && fieldInfo?.pin && (
+                  <div className="relative rounded-lg overflow-hidden border border-border/50">
+                    <img src={mapImage} alt="Mappa campi" className="w-full h-auto block" />
+                    <div
+                      className="absolute -translate-x-1/2 -translate-y-full"
+                      style={{ left: `${fieldInfo.pin.x}%`, top: `${fieldInfo.pin.y}%` }}
+                    >
+                      <MapPin
+                        className="w-8 h-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                        style={{ color: "#1E5FAF", fill: "#1E5FAF" }}
+                        strokeWidth={1.5}
+                        stroke="#ffffff"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
-              {match.field.google_maps_url && (
+              {openUrl && (
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => window.open(match.field!.google_maps_url!, "_blank")}
+                  onClick={() => window.open(openUrl, "_blank")}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Apri su Maps
