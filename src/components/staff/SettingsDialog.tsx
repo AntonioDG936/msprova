@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Users } from "lucide-react";
+import { Trash2, Plus, Users, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { AddMatchDialog } from "./AddMatchDialog";
 import { ManageSessionsDialog } from "./ManageSessionsDialog";
@@ -278,6 +278,9 @@ const FieldsTab = () => {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editUrl, setEditUrl] = useState("");
 
   const { data: fields = [] } = useQuery({
     queryKey: ["fields"],
@@ -304,25 +307,59 @@ const FieldsTab = () => {
     queryClient.invalidateQueries({ queryKey: ["fields"] });
   };
 
+  const startEdit = (f: any) => {
+    setEditingId(f.id);
+    setEditName(f.name);
+    setEditUrl(f.google_maps_url ?? "");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editName.trim()) return;
+    const { error } = await supabase.from("fields").update({
+      name: editName.trim(),
+      google_maps_url: editUrl.trim() || null,
+    }).eq("id", editingId);
+    if (error) { toast.error("Errore"); return; }
+    toast.success("Campo aggiornato");
+    setEditingId(null);
+    queryClient.invalidateQueries({ queryKey: ["fields"] });
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="space-y-2">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome campo" className="bg-muted/50 text-foreground" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome campo (es. MINERVA - C7A)" className="bg-muted/50 text-foreground" />
         <Input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} placeholder="Link Google Maps" className="bg-muted/50 text-foreground" />
         <Button onClick={addField} className="w-full bg-primary"><Plus className="w-4 h-4 mr-2" />Aggiungi Campo</Button>
       </div>
       <div className="space-y-2">
         {fields.map((f) => (
-          <div key={f.id} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
-            <div>
-              <span className="text-foreground">{f.name}</span>
-              {f.google_maps_url && (
-                <a href={f.google_maps_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs ml-2 hover:underline">Maps</a>
-              )}
-            </div>
-            <Button onClick={() => deleteField(f.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
-              <Trash2 className="w-4 h-4" />
-            </Button>
+          <div key={f.id} className="bg-muted/30 rounded-lg p-3">
+            {editingId === f.id ? (
+              <div className="space-y-2">
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="bg-muted/50 text-foreground" placeholder="Nome campo" />
+                <Input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} className="bg-muted/50 text-foreground" placeholder="Link Google Maps" />
+                <div className="flex gap-2">
+                  <Button onClick={saveEdit} size="sm" className="flex-1 bg-primary">Salva</Button>
+                  <Button onClick={() => setEditingId(null)} size="sm" variant="ghost" className="flex-1">Annulla</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-foreground truncate">{f.name}</div>
+                  {f.google_maps_url && (
+                    <a href={f.google_maps_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">Maps</a>
+                  )}
+                </div>
+                <Button onClick={() => startEdit(f)} size="icon" variant="ghost" className="text-foreground">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button onClick={() => deleteField(f.id)} size="icon" variant="ghost" className="text-destructive-foreground hover:bg-destructive/20">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>
