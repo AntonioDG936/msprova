@@ -63,18 +63,33 @@ const extractShortId = (url: string | null | undefined) => {
   return m ? m[1] : null;
 };
 
-/** Risolve l'info del campo dato il nome (codice) e l'URL Maps salvati nel DB. */
+const GROUPS: FieldGroup[] = ["SIBARI GREEN VILLAGE", "POLIVALENTE", "GIANNONE", "MARLUSA", "MINERVA"];
+
+/** Risolve l'info del campo dato il nome (codice) e l'URL Maps salvati nel DB.
+ *  Accetta sia "C7A" sia "MINERVA - C7A". */
 export function resolveField(
   fieldName: string | null | undefined,
   mapsUrl: string | null | undefined,
 ): FieldInfo | null {
   if (!fieldName) return null;
-  const code = normalizeCode(fieldName);
-  const candidates = REGISTRY.filter((f) => normalizeCode(f.code) === code);
+  const raw = fieldName.toUpperCase();
+
+  let group: FieldGroup | null = null;
+  let codePart = raw;
+  for (const g of GROUPS) {
+    if (raw.startsWith(g)) {
+      group = g;
+      codePart = raw.slice(g.length).replace(/^[\s\-–—:]+/, "");
+      break;
+    }
+  }
+  const code = normalizeCode(codePart);
+
+  let candidates = REGISTRY.filter((f) => normalizeCode(f.code) === code);
+  if (group) candidates = candidates.filter((c) => c.group === group);
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  // più gruppi con lo stesso codice → discrimina dall'URL
   const id = extractShortId(mapsUrl);
   if (id) {
     const byUrl = candidates.find((c) => extractShortId(c.mapsUrl) === id);
