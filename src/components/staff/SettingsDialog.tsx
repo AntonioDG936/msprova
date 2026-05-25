@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Users } from "lucide-react";
+import { Trash2, Plus, Users, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { AddMatchDialog } from "./AddMatchDialog";
 import { ManageSessionsDialog } from "./ManageSessionsDialog";
