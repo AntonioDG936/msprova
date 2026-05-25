@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
-import { useLiveTime, getMapsEmbedUrl } from "@/lib/liveTimer";
+import { useLiveTime } from "@/lib/liveTimer";
+import { resolveField, GROUP_MAP } from "@/lib/fieldsRegistry";
 
 interface MatchDetailDialogProps {
   match: {
