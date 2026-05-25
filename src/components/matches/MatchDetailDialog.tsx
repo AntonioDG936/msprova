@@ -86,7 +86,9 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
     return `${cumMinute + 1}'`;
   };
 
-  const embedUrl = getMapsEmbedUrl(match.field?.google_maps_url);
+  const fieldInfo = resolveField(match.field?.name, match.field?.google_maps_url);
+  const mapImage = fieldInfo ? GROUP_MAP[fieldInfo.group] : null;
+  const openUrl = fieldInfo?.mapsUrl || match.field?.google_maps_url || "";
 
   const renderLiveTime = () => {
     if (match.is_interval) return <span>INTERVALLO</span>;
