@@ -35,6 +35,21 @@ serve(async (req) => {
       "X-WR-TIMEZONE:Europe/Rome",
     ];
 
+    const resolveTeams = (match: any) => {
+      if (match.is_other_teams) {
+        return {
+          homeName: match.home_team || "Casa",
+          awayName: match.opponent || "Ospite",
+        };
+      }
+
+      const napoliIsHome = match.napoli_is_home !== false;
+      return {
+        homeName: napoliIsHome ? "Napoli Campania" : match.opponent || "Avversario",
+        awayName: napoliIsHome ? match.opponent || "Avversario" : "Napoli Campania",
+      };
+    };
+
     for (const match of (matches || [])) {
       const date = match.match_date.replace(/-/g, "");
       const timeParts = match.match_time.substring(0, 5).split(":");
@@ -45,8 +60,9 @@ serve(async (req) => {
       const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
       const endTime = `${endDate.getFullYear()}${String(endDate.getMonth() + 1).padStart(2, "0")}${String(endDate.getDate()).padStart(2, "0")}T${String(endDate.getHours()).padStart(2, "0")}${String(endDate.getMinutes()).padStart(2, "0")}00`;
 
-      const catName = match.category?.name || "";
-      const summary = `Napoli Campania ${catName} vs ${match.opponent}`;
+      const catName = match.category?.name ? ` ${match.category.name}` : "";
+      const { homeName, awayName } = resolveTeams(match);
+      const summary = `${homeName}${catName} vs ${awayName}`;
       const location = match.field?.name || "";
 
       lines.push("BEGIN:VEVENT");
