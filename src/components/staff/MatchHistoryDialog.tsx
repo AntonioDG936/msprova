@@ -44,6 +44,8 @@ export const MatchHistoryDialog = ({ open, onOpenChange }: MatchHistoryDialogPro
         query = query.eq("category_id", selectedCategory);
       }
 
+      query = query.order("is_other_teams", { ascending: true });
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
