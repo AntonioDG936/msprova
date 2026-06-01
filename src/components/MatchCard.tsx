@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MatchDetailDialog } from "@/components/matches/MatchDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveTime } from "@/lib/liveTimer";
+import { resolveMatchTeams } from "@/lib/matchTeams";
 
 interface MatchCardProps {
   match: {
@@ -63,9 +64,7 @@ export const MatchCard = ({ match: initialMatch, showCategory = false, onUpdate 
   // Tick ogni secondo: usa l'hook che calcola da match_start_time
   const live = useLiveTime(match);
 
-  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
-  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
+  const { homeName, awayName } = resolveMatchTeams(match);
 
   const renderLiveTime = () => {
     if (match.is_interval) return <span>INTERVALLO</span>;
