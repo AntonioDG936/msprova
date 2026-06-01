@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Play, Pause, Clock, Plus, Minus } from "lucide-react";
+import { resolveMatchTeams } from "@/lib/matchTeams";
 
 interface LiveMatchDashboardProps {
   match: any;
@@ -251,10 +252,7 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
     return `${currentMinute.toString().padStart(2, '0')}:${currentSecond.toString().padStart(2, '0')}`;
   };
 
-  const categoryName = match.category?.name || "";
-  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
-  const homeLabel = napoliAway ? match.opponent : `Napoli Campania ${categoryName}`;
-  const awayLabel = napoliAway ? `Napoli Campania ${categoryName}` : match.opponent;
+  const { homeName: homeLabel, awayName: awayLabel } = resolveMatchTeams(match);
 
   return (
     <>
@@ -376,7 +374,7 @@ export const LiveMatchDashboard = ({ match, open, onOpenChange, onUpdate }: Live
       <Dialog open={!!goalDialog} onOpenChange={(o) => { if (!o) { setGoalDialog(null); setGoalScorer(""); } }}>
         <DialogContent className="bg-card border-border/50 text-card-foreground max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-foreground">⚽ GOL! {goalDialog?.team === "home" ? "Napoli Campania" : match.opponent}</DialogTitle>
+            <DialogTitle className="text-foreground">⚽ GOL! {goalDialog?.team === "home" ? homeLabel : awayLabel}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
