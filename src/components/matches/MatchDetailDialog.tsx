@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { MapPin, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLiveTime } from "@/lib/liveTimer";
 import { resolveField, GROUP_MAP } from "@/lib/fieldsRegistry";
+import { resolveMatchTeams } from "@/lib/matchTeams";
 
 interface MatchDetailDialogProps {
   match: {
@@ -39,12 +40,11 @@ interface MatchDetailDialogProps {
 }
 
 export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDialogProps) => {
+  const [isMapZoomed, setIsMapZoomed] = useState(false);
   const hasResult = match.score_home !== null && match.score_away !== null;
   const isLive = match.status === "in_progress";
   const periodDuration = match.period_duration ?? 25;
-  const napoliAway = !match.is_other_teams && match.napoli_is_home === false;
-  const homeName = match.is_other_teams ? (match.home_team || "Casa") : (napoliAway ? match.opponent : "Napoli Campania");
-  const awayName = match.is_other_teams ? match.opponent : (napoliAway ? "Napoli Campania" : match.opponent);
+  const { homeName, awayName } = resolveMatchTeams(match);
 
   const live = useLiveTime(match);
 
@@ -165,7 +165,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground text-center mb-1">{homeName}</p>
-                  {events.filter(e => (napoliAway ? e.team === "away" : e.team === "home")).map(event => (
+                  {events.filter(e => e.team === "home").map(event => (
                     <div key={event.id} className="flex items-center gap-2 bg-muted/30 rounded p-2 text-sm">
                       <span className="text-primary font-mono font-bold text-xs">{formatEventTime(event)}</span>
                       <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
@@ -175,7 +175,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground text-center mb-1">{awayName}</p>
-                  {events.filter(e => (napoliAway ? e.team === "home" : e.team === "away")).map(event => (
+                  {events.filter(e => e.team === "away").map(event => (
                     <div key={event.id} className="flex items-center justify-end gap-2 bg-muted/30 rounded p-2 text-sm">
                       {event.player_name && <span className="text-foreground/80 text-xs truncate">{event.player_name}</span>}
                       <span>{event.event_type === "goal" ? "⚽" : event.event_type === "yellow_card" ? "🟨" : event.event_type === "red_card" ? "🟥" : "🔄"}</span>
@@ -229,21 +229,21 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
                     match.field.name
                   )}
                 </p>
-                {mapImage && fieldInfo?.pin && (
-                  <div className="relative rounded-lg overflow-hidden border border-border/50">
-                    <img src={mapImage} alt="Mappa campi" className="w-full h-auto block" />
-                    <div
-                      className="absolute -translate-x-1/2 -translate-y-full"
-                      style={{ left: `${fieldInfo.pin.x}%`, top: `${fieldInfo.pin.y}%` }}
-                    >
-                      <MapPin
-                        className="w-8 h-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
-                        style={{ color: "#1E5FAF", fill: "#1E5FAF" }}
-                        strokeWidth={1.5}
-                        stroke="#ffffff"
-                      />
-                    </div>
-                  </div>
+                 {mapImage && fieldInfo?.pin && (
+                   <div className="space-y-2">
+                     <div className="relative rounded-lg overflow-hidden border border-border/50">
+                       <img src={mapImage} alt="Mappa campi" className="w-full h-auto block cursor-zoom-in" onClick={() => setIsMapZoomed(true)} />
+                       <div
+                         className="absolute -translate-x-1/2 -translate-y-1/2"
+                         style={{ left: `${fieldInfo.pin.x}%`, top: `${fieldInfo.pin.y}%` }}
+                       >
+                         <MapPin className="w-8 h-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] text-primary fill-primary" strokeWidth={1.5} stroke="hsl(var(--primary-foreground))" />
+                       </div>
+                     </div>
+                     <Button variant="outline" className="w-full" onClick={() => setIsMapZoomed(true)}>
+                       Ingrandisci cartina
+                     </Button>
+                   </div>
                 )}
               </div>
               {openUrl && (
@@ -259,6 +259,25 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
             </div>
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={isMapZoomed} onOpenChange={setIsMapZoomed}>
+      <DialogContent className="bg-card border-border/50 text-card-foreground max-w-5xl p-3 sm:p-6">
+        <DialogHeader>
+          <DialogTitle className="text-foreground">Cartina campo</DialogTitle>
+        </DialogHeader>
+        {mapImage && fieldInfo?.pin && (
+          <div className="relative rounded-lg overflow-hidden border border-border/50">
+            <img src={mapImage} alt="Cartina campo ingrandita" className="w-full h-auto block" />
+            <div
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${fieldInfo.pin.x}%`, top: `${fieldInfo.pin.y}%` }}
+            >
+              <MapPin className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] text-primary fill-primary" strokeWidth={1.5} stroke="hsl(var(--primary-foreground))" />
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
