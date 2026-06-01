@@ -114,6 +114,7 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border/50 text-card-foreground max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -280,5 +281,6 @@ export const MatchDetailDialog = ({ match, open, onOpenChange }: MatchDetailDial
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 };
