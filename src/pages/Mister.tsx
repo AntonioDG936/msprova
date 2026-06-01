@@ -14,6 +14,15 @@ import { MatchHistoryView } from "@/components/MatchHistoryView";
 import { BracketButton } from "@/components/BracketDialog";
 import logoNapoli from "@/assets/logo-napoli.png";
 
+const groupMatchesByCategory = (matches: any[]) => {
+  return matches.reduce<Record<string, any[]>>((acc, match) => {
+    const key = match.category?.name || "Senza categoria";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(match);
+    return acc;
+  }, {});
+};
+
 type View = "matches" | "classifiche" | "storico" | "other_teams";
 
 const MisterPage = () => {
@@ -244,9 +253,16 @@ const MisterPage = () => {
             ) : otherTeamsMatches.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Nessuna partita tra altre squadre</p>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {otherTeamsMatches.map((m: any) => (
-                  <MatchCard key={m.id} match={m} showCategory={true} />
+              <div className="space-y-6">
+                {Object.entries(groupMatchesByCategory(otherTeamsMatches)).map(([categoryName, categoryMatches]) => (
+                  <section key={categoryName} className="space-y-3">
+                    <h3 className="text-base font-semibold text-foreground">{categoryName}</h3>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {categoryMatches.map((m: any) => (
+                        <MatchCard key={m.id} match={m} showCategory={false} />
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
             )}

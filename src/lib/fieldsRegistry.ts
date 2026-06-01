@@ -18,20 +18,20 @@ export interface FieldInfo {
 /** Tutti i campi noti. Le coord pin sono % rispetto all'immagine Minerva. */
 const REGISTRY: FieldInfo[] = [
   // MINERVA
-  { group: "MINERVA", code: "C7A", mapsUrl: "https://maps.app.goo.gl/q4pav49fTPBr1742A?g_st=ic", pin: { x: 5, y: 5 } },
-  { group: "MINERVA", code: "C7B", mapsUrl: "https://maps.app.goo.gl/TkkMkTxYMRL42Pa16?g_st=ic", pin: { x: 14, y: 62 } },
-  { group: "MINERVA", code: "C7C", mapsUrl: "https://maps.app.goo.gl/MLAvxvstwascgA3L9?g_st=ic", pin: { x: 27, y: 80 } },
-  { group: "MINERVA", code: "C9A", mapsUrl: "https://maps.app.goo.gl/1iHiX6rP8rY4kfiVA?g_st=ic", pin: { x: 46, y: 74 } },
-  { group: "MINERVA", code: "C9B", mapsUrl: "https://maps.app.goo.gl/NuGMUifg7TxvXGHRA?g_st=ic", pin: { x: 47, y: 92 } },
-  { group: "MINERVA", code: "C9C", mapsUrl: "https://maps.app.goo.gl/Y4mrg3pAoqcEuKgr8?g_st=ic", pin: { x: 58, y: 76 } },
-  { group: "MINERVA", code: "C11A", mapsUrl: "https://maps.app.goo.gl/HkrjEpaBsxs3MoCR9?g_st=ic", pin: { x: 14, y: 76 } },
-  { group: "MINERVA", code: "C11B", mapsUrl: "https://maps.app.goo.gl/RBfyNMHDJEs99UZu9?g_st=ic", pin: { x: 14, y: 92 } },
-  { group: "MINERVA", code: "C11C", mapsUrl: "", pin: { x: 71, y: 87 } },
-  { group: "MINERVA", code: "C9D", mapsUrl: "", pin: { x: 71, y: 93 } },
+  { group: "MINERVA", code: "C7A", mapsUrl: "https://maps.app.goo.gl/q4pav49fTPBr1742A?g_st=ic", pin: { x: 8, y: 8 } },
+  { group: "MINERVA", code: "C7B", mapsUrl: "https://maps.app.goo.gl/TkkMkTxYMRL42Pa16?g_st=ic", pin: { x: 12.5, y: 72 } },
+  { group: "MINERVA", code: "C7C", mapsUrl: "https://maps.app.goo.gl/MLAvxvstwascgA3L9?g_st=ic", pin: { x: 28.5, y: 74 } },
+  { group: "MINERVA", code: "C9A", mapsUrl: "https://maps.app.goo.gl/1iHiX6rP8rY4kfiVA?g_st=ic", pin: { x: 48.8, y: 74.5 } },
+  { group: "MINERVA", code: "C9B", mapsUrl: "https://maps.app.goo.gl/NuGMUifg7TxvXGHRA?g_st=ic", pin: { x: 15.2, y: 89.5 } },
+  { group: "MINERVA", code: "C9C", mapsUrl: "https://maps.app.goo.gl/Y4mrg3pAoqcEuKgr8?g_st=ic", pin: { x: 28.3, y: 74.5 } },
+  { group: "MINERVA", code: "C11A", mapsUrl: "https://maps.app.goo.gl/HkrjEpaBsxs3MoCR9?g_st=ic", pin: { x: 12.5, y: 80.5 } },
+  { group: "MINERVA", code: "C11B", mapsUrl: "https://maps.app.goo.gl/RBfyNMHDJEs99UZu9?g_st=ic", pin: { x: 12.5, y: 92.5 } },
+  { group: "MINERVA", code: "C11C", mapsUrl: "", pin: { x: 47, y: 88.2 } },
+  { group: "MINERVA", code: "C9D", mapsUrl: "", pin: { x: 47, y: 92.6 } },
 
   // MARLUSA (stessa cartina)
-  { group: "MARLUSA", code: "C5A", mapsUrl: "https://maps.app.goo.gl/1cfNjnQLrektm8Mb8?g_st=ic", pin: { x: 88, y: 49 } },
-  { group: "MARLUSA", code: "C5B", mapsUrl: "https://maps.app.goo.gl/iy5tLBe9h1qfdQYYA?g_st=ic", pin: { x: 88, y: 57 } },
+  { group: "MARLUSA", code: "C5A", mapsUrl: "https://maps.app.goo.gl/1cfNjnQLrektm8Mb8?g_st=ic", pin: { x: 90.5, y: 43.8 } },
+  { group: "MARLUSA", code: "C5B", mapsUrl: "https://maps.app.goo.gl/iy5tLBe9h1qfdQYYA?g_st=ic", pin: { x: 90.5, y: 50.8 } },
 
   // GIANNONE (no cartina)
   { group: "GIANNONE", code: "C9", mapsUrl: "https://maps.app.goo.gl/fGS1P3ZxM2o5XcSJ7?g_st=ic" },

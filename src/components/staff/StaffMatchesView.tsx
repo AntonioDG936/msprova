@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LiveMatchDashboard } from "@/components/matches/LiveMatchDashboard";
+import { resolveMatchTeams } from "@/lib/matchTeams";
 
 export const StaffMatchesView = () => {
   const queryClient = useQueryClient();
@@ -64,14 +65,17 @@ export const StaffMatchesView = () => {
         <p className="text-muted-foreground text-center py-8">Nessuna partita per questa data</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {matches.map((match: any) => (
+          {matches.map((match: any) => {
+            const { homeName, awayName, isNapoliMatch } = resolveMatchTeams(match);
+
+            return (
             <Card key={match.id} className="bg-card/80 backdrop-blur-sm border-border/50">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
                       <h3 className="font-bold text-base text-foreground">
-                        Napoli Campania vs {match.opponent}
+                        {homeName} vs {awayName}
                       </h3>
                       <span className="text-sm font-bold text-primary ml-2">
                         {match.category?.name}
@@ -95,7 +99,7 @@ export const StaffMatchesView = () => {
                   <div className="flex items-center gap-2">
                     <Clock className="w-3 h-3" /><span>{match.match_time.substring(0, 5)}</span>
                   </div>
-                  {match.mister && (
+                  {match.mister && isNapoliMatch && (
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3" /><span>{match.mister.first_name} {match.mister.last_name}</span>
                     </div>
@@ -128,7 +132,7 @@ export const StaffMatchesView = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
       )}
 
@@ -150,6 +154,8 @@ export const StaffMatchesView = () => {
 
 const EditMatchDialog = ({ match, open, onOpenChange }: { match: any; open: boolean; onOpenChange: (o: boolean) => void }) => {
   const queryClient = useQueryClient();
+  const [isOtherTeams, setIsOtherTeams] = useState(!!match.is_other_teams);
+  const [homeTeam, setHomeTeam] = useState(match.home_team || "");
   const [opponent, setOpponent] = useState(match.opponent);
   const [matchDate, setMatchDate] = useState(match.match_date);
   const [matchTime, setMatchTime] = useState(match.match_time.substring(0, 5));
@@ -159,17 +165,62 @@ const EditMatchDialog = ({ match, open, onOpenChange }: { match: any; open: bool
   const [categoryId, setCategoryId] = useState(match.category_id);
   const [misterId, setMisterId] = useState(match.mister_id || "");
   const [fieldId, setFieldId] = useState(match.field_id || "");
+  const [napoliIsHome, setNapoliIsHome] = useState(match.napoli_is_home !== false);
 
   const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: async () => { const { data } = await supabase.from("categories").select("*").order("sort_order"); return data || []; } });
   const { data: misters = [] } = useQuery({ queryKey: ["misters"], queryFn: async () => { const { data } = await supabase.from("misters").select("*").order("last_name"); return data || []; } });
   const { data: fields = [] } = useQuery({ queryKey: ["fields"], queryFn: async () => { const { data } = await supabase.from("fields").select("*").order("name"); return data || []; } });
+  const { data: opponentTeams = [] } = useQuery({
+    queryKey: ["opponent-teams", categoryId],
+    queryFn: async () => {
+      if (!categoryId) return [];
+      const { data } = await supabase.from("opponent_teams").select("*").eq("category_id", categoryId).order("name");
+      return data || [];
+    },
+    enabled: !!categoryId,
+  });
+
+  useEffect(() => {
+    setIsOtherTeams(!!match.is_other_teams);
+    setHomeTeam(match.home_team || "");
+    setOpponent(match.opponent || "");
+    setMatchDate(match.match_date);
+    setMatchTime(match.match_time.substring(0, 5));
+    setNotes(match.notes || "");
+    setScoreHome(match.score_home?.toString() || "");
+    setScoreAway(match.score_away?.toString() || "");
+    setCategoryId(match.category_id);
+    setMisterId(match.mister_id || "");
+    setFieldId(match.field_id || "");
+    setNapoliIsHome(match.napoli_is_home !== false);
+  }, [match]);
 
   const handleSave = async () => {
+    if (!categoryId || !matchDate || !matchTime) {
+      toast.error("Compila Categoria, Data e Ora");
+      return;
+    }
+
+    if (isOtherTeams) {
+      if (!homeTeam.trim() || !opponent.trim()) {
+        toast.error("Inserisci entrambe le squadre");
+        return;
+      }
+    } else if (!opponent.trim()) {
+      toast.error("Inserisci la squadra avversaria");
+      return;
+    }
+
     const { error } = await supabase.from("matches").update({
-      opponent, match_date: matchDate, match_time: matchTime, notes: notes || null,
+      opponent: opponent.trim(), match_date: matchDate, match_time: matchTime, notes: notes || null,
       score_home: scoreHome ? parseInt(scoreHome) : null,
       score_away: scoreAway ? parseInt(scoreAway) : null,
-      category_id: categoryId, mister_id: misterId || null, field_id: fieldId || null,
+      category_id: categoryId,
+      mister_id: isOtherTeams ? null : misterId || null,
+      field_id: fieldId || null,
+      is_other_teams: isOtherTeams,
+      home_team: isOtherTeams ? homeTeam.trim() : null,
+      napoli_is_home: isOtherTeams ? null : napoliIsHome,
     }).eq("id", match.id);
 
     if (error) { toast.error("Errore"); return; }
@@ -192,15 +243,57 @@ const EditMatchDialog = ({ match, open, onOpenChange }: { match: any; open: bool
             </Select>
           </div>
           <div className="space-y-2">
+            <Label className="text-foreground">Tipo partita</Label>
+            <Select value={isOtherTeams ? "other" : "napoli"} onValueChange={(value) => setIsOtherTeams(value === "other")}>
+              <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="napoli">Napoli Campania</SelectItem>
+                <SelectItem value="other">Altre squadre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label className="text-foreground">Mister</Label>
             <Select value={misterId} onValueChange={setMisterId}>
               <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>{misters.map((m: any) => (<SelectItem key={m.id} value={m.id}>{m.first_name} {m.last_name}</SelectItem>))}</SelectContent>
             </Select>
           </div>
+          {!isOtherTeams && (
+            <div className="space-y-2">
+              <Label className="text-foreground">Napoli Campania gioca</Label>
+              <Select value={napoliIsHome ? "home" : "away"} onValueChange={(value) => setNapoliIsHome(value === "home")}>
+                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="home">In casa</SelectItem>
+                  <SelectItem value="away">In trasferta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {isOtherTeams && (
+            <div className="space-y-2">
+              <Label className="text-foreground">Squadra di casa</Label>
+              {opponentTeams.length > 0 ? (
+                <Select value={homeTeam} onValueChange={setHomeTeam}>
+                  <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                  <SelectContent>{opponentTeams.map((t: any) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}</SelectContent>
+                </Select>
+              ) : (
+                <Input value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} className="bg-muted/50 text-foreground" />
+              )}
+            </div>
+          )}
           <div className="space-y-2">
-            <Label className="text-foreground">Avversario</Label>
-            <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50 text-foreground" />
+            <Label className="text-foreground">{isOtherTeams ? "Squadra ospite" : "Avversario"}</Label>
+            {opponentTeams.length > 0 ? (
+              <Select value={opponent} onValueChange={setOpponent}>
+                <SelectTrigger className="bg-muted/50 text-foreground"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                <SelectContent>{opponentTeams.filter((t: any) => t.name !== homeTeam).map((t: any) => (<SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>))}</SelectContent>
+              </Select>
+            ) : (
+              <Input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="bg-muted/50 text-foreground" />
+            )}
           </div>
           <div className="space-y-2">
             <Label className="text-foreground">Campo</Label>
